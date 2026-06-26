@@ -88,12 +88,12 @@ function buildHTML() {
         </div>
 
         <!-- 双轴折线图 OR 日历网格 -->
-        <div class="panel" style="flex:1;min-height:280px;" id="multi-chart-panel">
+        <div class="panel mid-chart-panel" id="multi-chart-panel">
           <div class="panel-header">
             <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg><span id="multi-chart-title">价格趋势与ATC</span></h2>
           </div>
-          <div class="panel-body" style="padding:8px;">
-            <div id="multi-chart-container" style="width:100%;height:260px;"></div>
+          <div class="panel-body">
+            <div id="multi-chart-container" class="mid-chart-area"></div>
           </div>
         </div>
       </div>
@@ -178,7 +178,7 @@ function hideCalendarView() {
   if (chartTitle) chartTitle.textContent = '价格趋势与ATC';
 
   const chartContainer = document.getElementById('multi-chart-container');
-  if (chartContainer) chartContainer.style.height = '260px';
+  if (chartContainer) chartContainer.style.height = '';
 }
 
 function initBids() {

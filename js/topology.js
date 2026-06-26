@@ -24,7 +24,7 @@ export function initCompactTopology(containerId) {
 }
 
 function renderSVG(container, compact) {
-  const vb = compact ? '20 50 840 280' : '0 0 920 400';
+  const vb = compact ? '0 45 920 340' : '0 0 920 400';
   const nodeR = compact ? 16 : 18;
   const convR = compact ? 18 : 22;
   const nameFontSize = compact ? 10 : 11;
@@ -125,7 +125,7 @@ function renderSVG(container, compact) {
   const dcLabelY = compact ? 135 : 140;
   const dcMidX = compact ? 460 : 460;
 
-  const svg = `<svg class="${compact ? 'topo-compact-svg' : 'topo-svg'}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg class="${compact ? 'topo-compact-svg' : 'topo-svg'}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <pattern id="grid${compact ? '-c' : ''}" width="20" height="20" patternUnits="userSpaceOnUse">
         <circle cx="10" cy="10" r="0.5" fill="#e2e8f0"/>
@@ -146,7 +146,7 @@ function renderSVG(container, compact) {
         </polygon>
       </marker>
     </defs>
-    <rect width="${compact ? '800' : '920'}" height="${compact ? '320' : '400'}" fill="url(#grid${compact ? '-c' : ''})"/>
+    <rect x="${compact ? '0' : '0'}" y="${compact ? '45' : '0'}" width="920" height="${compact ? '340' : '400'}" fill="url(#grid${compact ? '-c' : ''})"/>
 
     ${!compact ? `
     <text x="180" y="30" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">华东 / 福建电网</text>

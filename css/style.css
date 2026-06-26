@@ -28,6 +28,7 @@
   --card-shadow: 0 4px 20px -8px rgba(0,0,0,0.05);
   --panel-radius: 16px;
   --card-radius: 8px;
+  --mid-chart-height: 144px; /* 原 240px 的 3/5，竞价排队图 / 价格趋势与ATC 共用 */
 }
 
 /* --- Reset & Base --- */
@@ -667,7 +668,12 @@ label {
 
 .three-col-layout > div:nth-child(2) > .panel:first-child {
   flex-shrink: 0;
-  height: 90px;
+  height: auto;
+}
+
+.three-col-layout > div:nth-child(2) > .panel:first-child > .panel-body {
+  overflow: visible;
+  padding: 8px 12px;
 }
 
 .three-col-layout > div:nth-child(2) > .panel:nth-child(2) {
@@ -686,9 +692,28 @@ label {
   flex-direction: column;
 }
 
+#single-topo-svg,
+#multi-topo-svg {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .three-col-layout > div:nth-child(2) > .panel:last-child {
-  flex-shrink: 0;
-  height: 20%;
+  flex: 0 0 auto;
+  height: auto;
+  min-height: unset;
+}
+
+.mid-chart-panel > .panel-body {
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.mid-chart-area {
+  width: 100%;
+  height: var(--mid-chart-height);
+  overflow: hidden;
 }
 
 /* --- Compact topology --- */

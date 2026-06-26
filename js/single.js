@@ -100,13 +100,13 @@ function buildHTML() {
         </div>
 
         <!-- 竞价排队图 -->
-        <div class="panel" style="flex:1;min-height:260px;">
+        <div class="panel mid-chart-panel">
           <div class="panel-header">
             <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>竞价排队图</h2>
             <span id="single-mcp-badge" class="badge badge-warning">等待出清</span>
           </div>
-          <div class="panel-body" style="padding:8px;">
-            <div id="single-queue-chart" style="width:100%;height:240px;"></div>
+          <div class="panel-body">
+            <div id="single-queue-chart" class="mid-chart-area"></div>
           </div>
         </div>
       </div>
@@ -376,7 +376,7 @@ function renderQueueChart(result) {
   const container = document.getElementById('single-queue-chart');
   if (!container) return;
   if (!result) {
-    container.innerHTML = '<div class="text-center text-muted" style="padding:40px 0;font-size:12px;">出清后显示排队图</div>';
+    container.innerHTML = '<div class="text-center text-muted" style="padding:16px 0;font-size:12px;">出清后显示排队图</div>';
     return;
   }
 
@@ -422,7 +422,6 @@ function renderQueueChart(result) {
       <line x1="${atcLineX}" y1="${padT}" x2="${atcLineX}" y2="${padT + queue.length * (barH + barGap)}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 2"/>
       <text x="${atcLineX}" y="${chartH - 5}" text-anchor="middle" font-size="9" font-weight="600" fill="#ef4444">ATC</text>
     </svg>`;
-}
 }
 
 function renderSettlement(result, settlement) {
