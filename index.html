@@ -25,24 +25,28 @@
         <div class="topbar-subtitle">Physical Transmission Right Trading Sandbox</div>
       </div>
     </div>
-    <div class="scenario-group">
-      <span class="text-xs text-muted" style="margin-right:4px;line-height:28px;">场景:</span>
-      <button class="scenario-btn active" data-scenario="flat">日常运行</button>
-      <button class="scenario-btn" data-scenario="windy">寒潮大风</button>
-      <button class="scenario-btn" data-scenario="hot">夏季尖峰</button>
-      <button class="scenario-btn" data-scenario="reverse">反向潮流</button>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+      <!-- Tabs in Header -->
+      <div class="header-tabs">
+        <button class="header-tab-btn active" data-tab="topo">物理拓扑</button>
+        <button class="header-tab-btn" data-tab="single">单时段出清</button>
+        <button class="header-tab-btn" data-tab="multi">多时段推演</button>
+        <button class="header-tab-btn" data-tab="rules">规则知识库</button>
+      </div>
+
+      <!-- Scenario Buttons -->
+      <div class="scenario-group">
+        <button class="scenario-btn active" data-scenario="flat">日常运行</button>
+        <button class="scenario-btn" data-scenario="windy">寒潮大风</button>
+        <button class="scenario-btn" data-scenario="hot">夏季尖峰</button>
+        <button class="scenario-btn" data-scenario="reverse">反向潮流</button>
+      </div>
     </div>
   </header>
 
   <!-- Workspace -->
   <div class="workspace">
-    <!-- Tabs -->
-    <div class="tabs" style="margin-bottom:12px;">
-      <button class="tab-btn active" data-tab="topo">物理拓扑</button>
-      <button class="tab-btn" data-tab="single">单时段出清</button>
-      <button class="tab-btn" data-tab="multi">多时段推演</button>
-      <button class="tab-btn" data-tab="rules">规则知识库</button>
-    </div>
 
     <!-- Tab: 物理拓扑 -->
     <div id="tab-topo" class="tab-content active">

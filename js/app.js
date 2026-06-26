@@ -14,7 +14,7 @@ const AppState = {
 
 function switchTab(tab) {
   AppState.currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn, .header-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
   document.querySelectorAll('.tab-content').forEach(el => {
@@ -34,8 +34,8 @@ function switchScenario(scenario) {
 }
 
 function init() {
-  // Tab 绑定
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  // Tab 绑定（支持header和workspace中的tabs）
+  document.querySelectorAll('.tab-btn, .header-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 

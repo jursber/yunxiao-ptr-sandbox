@@ -24,11 +24,11 @@ export function initCompactTopology(containerId) {
 }
 
 function renderSVG(container, compact) {
-  const vb = compact ? '40 60 800 320' : '20 20 920 400';
-  const nodeR = compact ? 16 : 18;
-  const convR = compact ? 18 : 22;
-  const nameFontSize = compact ? 10 : 11;
-  const subFontSize = compact ? 8 : 9;
+  const vb = compact ? '40 60 800 280' : '0 0 920 400';
+  const nodeR = compact ? 14 : 16;
+  const convR = compact ? 16 : 18;
+  const nameFontSize = compact ? 9 : 10;
+  const subFontSize = compact ? 7 : 8;
   const tagFontSize = compact ? 8 : 9;
 
   function renderNodesCompact() {
@@ -120,7 +120,8 @@ function renderSVG(container, compact) {
     }).join('');
   }
 
-  const atc = calcATC(currentScenario);
+  const atcInfo = calcATC(currentScenario);
+  const atc = atcInfo.atc;
   const dcLabelY = compact ? 135 : 140;
   const dcMidX = compact ? 460 : 460;
 
@@ -148,8 +149,8 @@ function renderSVG(container, compact) {
     <rect width="${compact ? '800' : '920'}" height="${compact ? '320' : '400'}" fill="url(#grid${compact ? '-c' : ''})"/>
 
     ${!compact ? `
-    <text x="160" y="25" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">华东 / 福建电网</text>
-    <text x="680" y="25" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">南方 / 广东电网</text>
+    <text x="180" y="30" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">华东 / 福建电网</text>
+    <text x="720" y="30" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">南方 / 广东电网</text>
     ` : ''}
 
     ${renderEdgesCompact()}
@@ -270,21 +271,21 @@ export function renderDispatchResult(containerId, clearingResult) {
   }
 
   const queue = clearingResult.fullQueue;
-  const items = queue.map(b => {
+  const items = queue.slice(0, 6).map(b => {
     const dotCls = b.status === 'Won' ? 'won' : b.status === 'Marginal' ? 'marginal' : 'lost';
     const statusText = b.status === 'Won' ? '✓' : b.status === 'Marginal' ? '◐' : '✗';
     const name = b.isUser ? '您' : b.name;
-    return `<div class="dispatch-item">
+    return `<div class="dispatch-item-compact">
       <span class="dispatch-dot ${dotCls}"></span>
-      <span class="dispatch-name">${name}</span>
-      <span class="dispatch-price">${b.price}</span>
+      <span class="dispatch-name" style="font-size:10px;">${name}</span>
+      <span class="dispatch-price" style="font-size:10px;">${b.price}</span>
       <span class="text-xs" style="color:${dotCls === 'won' ? 'var(--success)' : dotCls === 'marginal' ? 'var(--warning)' : 'var(--dim)'};">${statusText}</span>
     </div>`;
   }).join('');
 
   el.innerHTML = `
     <div class="text-xs font-semibold text-muted uppercase mb-1">调度出清结果</div>
-    <div class="dispatch-grid">${items}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">${items}</div>
     <div class="text-xs text-muted mt-1" style="border-top:1px solid var(--divider2);padding-top:4px;">
       边际出清价: <span class="mono font-semibold text-warning">${clearingResult.mcpPrice}</span> 元/MWh ·
       ATC: <span class="mono">${clearingResult.atc}</span> MW
