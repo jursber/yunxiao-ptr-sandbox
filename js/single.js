@@ -381,56 +381,51 @@ function renderQueueChart(result) {
   const container = document.getElementById('single-queue-chart');
   if (!container) return;
   if (!result) {
-    container.innerHTML = '<div class="text-center text-muted" style="padding:80px 0;font-size:12px;">出清后显示排队图</div>';
+    container.innerHTML = '<div class="text-center text-muted" style="padding:40px 0;font-size:12px;">出清后显示排队图</div>';
     return;
   }
 
   const queue = result.fullQueue;
   const atc = result.atc;
-  const barW = Math.min(60, (container.clientWidth - 60) / queue.length - 8);
-  const maxQty = Math.max(...queue.map(b => b.qty));
-  const chartH = 200;
   const chartW = container.clientWidth;
-  const startX = 50;
-  const barGap = (chartW - startX - 20) / queue.length;
+  const chartH = 120; // 大幅降低高度
+  const padL = 80, padR = 20, padT = 10, padB = 30;
+  const barH = 16; // 横向柱子高度
+  const barGap = 4;
+  const maxQty = Math.max(...queue.map(b => b.qty));
+  const plotW = chartW - padL - padR;
 
-  let cumulative = 0;
   const bars = queue.map((b, i) => {
-    const x = startX + i * barGap + (barGap - barW) / 2;
-    const h = (b.qty / maxQty) * (chartH - 40);
-    const y = chartH - 30 - h;
-    cumulative += b.qty;
+    const y = padT + i * (barH + barGap);
+    const w = (b.qty / maxQty) * plotW;
     let cls = 'lost-bar';
     if (b.isUser) cls = b.status === 'Won' ? 'user-bar' : b.status === 'Marginal' ? 'marginal-bar' : 'user-bar';
     else cls = b.status === 'Won' ? 'won-bar' : b.status === 'Marginal' ? 'marginal-bar' : 'lost-bar';
-    const name = b.isUser ? '您' : b.name.slice(0, 4);
+    const name = b.isUser ? '您' : b.name;
+    const fill = cls === 'user-bar' ? '#2563eb' : cls === 'won-bar' ? '#10b981' : cls === 'marginal-bar' ? '#f59e0b' : '#cbd5e1';
+
     return `
-      <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="4" class="queue-bar ${cls}" opacity="0.85"/>
-      <text x="${x + barW/2}" y="${chartH - 14}" text-anchor="middle" font-size="9" fill="#64748b">${name}</text>
-      <text x="${x + barW/2}" y="${y - 6}" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b" font-family="var(--mono)">${b.price}</text>
+      <rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="3" fill="${fill}" opacity="0.85"/>
+      <text x="${padL - 6}" y="${y + barH/2 + 4}" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">${name}</text>
+      <text x="${padL + w + 6}" y="${y + barH/2 + 4}" font-size="10" font-weight="600" fill="${fill}" font-family="var(--mono)">${b.price}元</text>
     `;
   }).join('');
 
-  let cumForAtc = 0;
-  let atcY = chartH - 30;
+  // ATC标线
+  let cumulativeQty = 0;
+  let atcLineX = padL;
   for (const b of queue) {
-    cumForAtc += b.qty;
-    if (cumForAtc >= atc) {
-      atcY = chartH - 30 - (atc / maxQty) * (chartH - 40);
-      break;
-    }
+    if (cumulativeQty >= atc) break;
+    cumulativeQty += b.qty;
+    atcLineX = padL + (cumulativeQty / maxQty) * plotW;
   }
 
   container.innerHTML = `
-    <svg width="${chartW}" height="${chartH + 20}" viewBox="0 0 ${chartW} ${chartH + 20}">
-      <text x="${startX - 8}" y="${chartH - 28}" text-anchor="end" font-size="9" fill="#94a3b8">0</text>
-      <text x="${startX - 8}" y="20" text-anchor="end" font-size="9" fill="#94a3b8">${maxQty}MW</text>
-      <line x1="${startX}" y1="${chartH - 30}" x2="${chartW - 10}" y2="${chartH - 30}" stroke="#e2e8f0" stroke-width="1"/>
+    <svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" style="background:#f8fafc;border-radius:8px;">
       ${bars}
-      <line x1="${startX}" y1="${atcY}" x2="${chartW - 10}" y2="${atcY}" class="atc-line"/>
-      <text x="${chartW - 12}" y="${atcY - 6}" text-anchor="end" font-size="10" font-weight="600" fill="#ef4444">ATC ${atc}MW</text>
-      <text x="${startX + 4}" y="16" font-size="11" font-weight="600" fill="#f59e0b">边际出清价: ${result.mcpPrice} 元/MWh</text>
-      <text x="${startX + 4}" y="30" font-size="10" fill="#64748b">您的状态: ${result.isUserWon ? '中标 ' + result.userWinQty + 'MW' : '未中标'}</text>
+      <line x1="${atcLineX}" y1="${padT}" x2="${atcLineX}" y2="${padT + queue.length * (barH + barGap)}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 2"/>
+      <text x="${atcLineX}" y="${padT + queue.length * (barH + barGap) + 18}" text-anchor="middle" font-size="10" font-weight="600" fill="#ef4444">ATC: ${atc}MW</text>
+      <text x="${chartW/2}" y="${chartH - 4}" text-anchor="middle" font-size="11" fill="#64748b">竞价排队图（横向柱状图）</text>
     </svg>`;
 }
 
