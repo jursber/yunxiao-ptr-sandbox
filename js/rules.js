@@ -14,7 +14,7 @@ export function initRules(containerId) {
 function buildHTML() {
   return `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <!-- 左侧：条款索引 + FAQ -->
+      <!-- 左侧：条款索引 + 场景解析 -->
       <div class="flex flex-col gap-3">
         <div class="panel">
           <div class="panel-header">
@@ -27,21 +27,32 @@ function buildHTML() {
 
         <div class="panel" style="flex:1;">
           <div class="panel-header">
+            <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>场景深度解析</h2>
+          </div>
+          <div class="panel-body">
+            ${renderScenarioAnalysis()}
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：FAQ + 公式 -->
+      <div class="flex flex-col gap-3">
+        <div class="panel">
+          <div class="panel-header">
             <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ 常见问题</h2>
           </div>
           <div class="panel-body">
             ${renderFAQ()}
           </div>
         </div>
-      </div>
 
-      <!-- 右侧：公式推导 -->
-      <div class="panel">
-        <div class="panel-header">
-          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>核心计算模型</h2>
-        </div>
-        <div class="panel-body">
-          <div id="formula-container">${renderFormulas()}</div>
+        <div class="panel" style="flex:1;">
+          <div class="panel-header">
+            <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>核心计算模型</h2>
+          </div>
+          <div class="panel-body">
+            <div id="formula-container">${renderFormulas()}</div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -100,6 +111,190 @@ function renderFAQ() {
       <div class="faq-a" data-idx="${i}">${f.a}</div>
     </div>
   `).join('');
+}
+
+function renderScenarioAnalysis() {
+  const scenarios = [
+    {
+      id: 'windy',
+      title: '寒潮大风（风电暴发场景）',
+      icon: '🌬️',
+      color: '#3b82f6',
+      physics: '寒潮过境导致沿海风力极强，福建平潭、宁德等海上风电基地进入满发状态。此时段福建省内负荷相对有限，导致外送需求极度迫切，但直流通道瞬时超负荷。',
+      params: [
+        { key: '风电出力', value: '额定值95%以上', impact: '送端网架电压波动风险增大' },
+        { key: 'ATC调整', value: '削减至900MW（45%）', impact: '调度侧为保证安全动态削减容量' },
+        { key: '福建电价', value: '极低（80元/MWh）', impact: '出现负电价或超低电价' }
+      ],
+      consequence: '通道呈现"供大于求且容量受限"的拥挤状态。未中标PTR的交易员将面临巨额送端弃电损失或现货市场违约罚金。',
+      strategy: '激进报价策略，接近上限抢通道。关注风电出力预测，提前布局。'
+    },
+    {
+      id: 'hot',
+      title: '迎峰度夏（高温网架重载场景）',
+      icon: '🔥',
+      color: '#ef4444',
+      physics: '夏季高温导致两省电力负荷齐升。广东空调负荷占比极高，受端节点电价极度敏感。福建为保证核电出力安全，需严控网架潮流流向。',
+      params: [
+        { key: '广东电价', value: '1000元/MWh以上', impact: '燃气调峰机组驱动价格飙升' },
+        { key: 'ATC压缩', value: '仅500MW', impact: '避免换流站过热及联络线过载' },
+        { key: '稳控约束', value: '高度警惕模式', impact: '任何潮流波动触发告警' }
+      ],
+      consequence: '价格战最惨烈的场景。交易员报价极其趋近100元上限。中标即"发财"，落标即"巨亏"。',
+      strategy: '最高价抢通道，容量尽量饱和。此场景下价差巨大，即使高价中标也能获得丰厚利润。'
+    },
+    {
+      id: 'flat',
+      title: '春季检修（检修窗口场景）',
+      icon: '🔧',
+      color: '#f59e0b',
+      physics: '全网设备检修季。云霄换流站一极进行定期停运检修，通道整体输电容量直接"腰斩"。',
+      params: [
+        { key: 'ATC固定值', value: '1000MW', impact: '检修期间的额定保障能力' },
+        { key: '检修标志', value: '激活规则引擎', impact: '限制超1000MW合同履约优先级' },
+        { key: '价差走势', value: '相对平稳', impact: '无极端峰值但通道被物理卡死' }
+      ],
+      consequence: '属于"策略型场景"。主要考察交易员在通道固定减容情况下，如何筛选最优电量进行履约，是对持有长期合同者最严酷的考验。',
+      strategy: '理性报价策略，精确计算盈亏平衡点。避免过度竞争导致中标价过高。'
+    },
+    {
+      id: 'holiday',
+      title: '节日低负荷（春节/国庆场景）',
+      icon: '🎉',
+      color: '#10b981',
+      physics: '全社会生产停工，负荷谷底。虽然通道容量看起来宽裕，但由于两省电价都较低，套利空间极小。',
+      params: [
+        { key: '两省电价', value: '双双走低', impact: '价差小于50元，套利空间狭窄' },
+        { key: 'ATC容量', value: '1500MW（宽松）', impact: '通道不挤但无利可图' },
+        { key: 'AI报价', value: '接近25.6元底线', impact: '市场竞争极其低迷' }
+      ],
+      consequence: '通道虽然不挤，但套利空间极小，甚至会出现"如果中标价高于边际收益，则中标即亏损"的负收益情况。',
+      strategy: '果断止损意识。在没利润时，宁可放弃申报也不要盲目追求中标率。考虑观望或极低价试探。'
+    }
+  ];
+
+  return scenarios.map(s => `
+    <div class="card" style="border-left:4px solid ${s.color};margin-bottom:8px;cursor:pointer;" onclick="window.showScenarioDetail('${s.id}')">
+      <div class="flex items-center gap-2 mb-2">
+        <span style="font-size:20px;">${s.icon}</span>
+        <span class="text-xs font-semibold text-ink">${s.title}</span>
+      </div>
+      <div class="text-xs text-body" style="line-height:1.7;margin-bottom:8px;">
+        <strong>物理机理：</strong>${s.physics}
+      </div>
+      <div class="text-xs text-muted">点击查看详细参数与策略建议 →</div>
+    </div>
+  `).join('');
+}
+
+// 全局函数：显示场景详情
+window.showScenarioDetail = function(scenarioId) {
+  const scenarios = {
+    windy: {
+      title: '寒潮大风（风电暴发场景）',
+      icon: '🌬️',
+      color: '#3b82f6',
+      params: [
+        { key: '风电出力', value: '额定值95%以上', impact: '送端网架电压波动风险增大' },
+        { key: 'ATC调整', value: '削减至900MW（45%）', impact: '调度侧为保证安全动态削减容量' },
+        { key: '福建电价', value: '极低（80元/MWh）', impact: '出现负电价或超低电价' }
+      ],
+      consequence: '通道呈现"供大于求且容量受限"的拥挤状态。未中标PTR的交易员将面临巨额送端弃电损失或现货市场违约罚金。',
+      strategy: '激进报价策略，接近上限抢通道。关注风电出力预测，提前布局。'
+    },
+    hot: {
+      title: '迎峰度夏（高温网架重载场景）',
+      icon: '🔥',
+      color: '#ef4444',
+      params: [
+        { key: '广东电价', value: '1000元/MWh以上', impact: '燃气调峰机组驱动价格飙升' },
+        { key: 'ATC压缩', value: '仅500MW', impact: '避免换流站过热及联络线过载' },
+        { key: '稳控约束', value: '高度警惕模式', impact: '任何潮流波动触发告警' }
+      ],
+      consequence: '价格战最惨烈的场景。交易员报价极其趋近100元上限。中标即"发财"，落标即"巨亏"。',
+      strategy: '最高价抢通道，容量尽量饱和。此场景下价差巨大，即使高价中标也能获得丰厚利润。'
+    },
+    flat: {
+      title: '春季检修（检修窗口场景）',
+      icon: '🔧',
+      color: '#f59e0b',
+      params: [
+        { key: 'ATC固定值', value: '1000MW', impact: '检修期间的额定保障能力' },
+        { key: '检修标志', value: '激活规则引擎', impact: '限制超1000MW合同履约优先级' },
+        { key: '价差走势', value: '相对平稳', impact: '无极端峰值但通道被物理卡死' }
+      ],
+      consequence: '属于"策略型场景"。主要考察交易员在通道固定减容情况下，如何筛选最优电量进行履约，是对持有长期合同者最严酷的考验。',
+      strategy: '理性报价策略，精确计算盈亏平衡点。避免过度竞争导致中标价过高。'
+    },
+    holiday: {
+      title: '节日低负荷（春节/国庆场景）',
+      icon: '🎉',
+      color: '#10b981',
+      params: [
+        { key: '两省电价', value: '双双走低', impact: '价差小于50元，套利空间狭窄' },
+        { key: 'ATC容量', value: '1500MW（宽松）', impact: '通道不挤但无利可图' },
+        { key: 'AI报价', value: '接近25.6元底线', impact: '市场竞争极其低迷' }
+      ],
+      consequence: '通道虽然不挤，但套利空间极小，甚至会出现"如果中标价高于边际收益，则中标即亏损"的负收益情况。',
+      strategy: '果断止损意识。在没利润时，宁可放弃申报也不要盲目追求中标率。考虑观望或极低价试探。'
+    }
+  };
+
+  const s = scenarios[scenarioId];
+  if (!s) return;
+
+  const paramsTable = `
+    <table class="data-table" style="margin:12px 0;">
+      <thead><tr><th>参数</th><th>数值</th><th>影响</th></tr></thead>
+      <tbody>
+        ${s.params.map(p => `<tr><td class="font-semibold">${p.key}</td><td class="mono">${p.value}</td><td class="text-xs">${p.impact}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+
+  const modalContent = `
+    <div style="max-height:400px;overflow-y:auto;">
+      <div class="flex items-center gap-2 mb-3">
+        <span style="font-size:32px;">${s.icon}</span>
+        <h3 class="text-lg font-bold" style="color:${s.color};">${s.title}</h3>
+      </div>
+
+      <div class="card" style="background:#f8fafc;margin-bottom:12px;">
+        <div class="text-xs font-semibold text-muted uppercase mb-1">关键参数影响</div>
+        ${paramsTable}
+      </div>
+
+      <div class="card" style="background:#fef2f2;border:1px solid #fecaca;margin-bottom:12px;">
+        <div class="text-xs font-semibold text-error uppercase mb-1">⚠️ 运行后果</div>
+        <div class="text-xs text-body" style="line-height:1.7;">${s.consequence}</div>
+      </div>
+
+      <div class="card" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <div class="text-xs font-semibold text-success uppercase mb-1">💡 策略建议</div>
+        <div class="text-xs text-body" style="line-height:1.7;">${s.strategy}</div>
+      </div>
+    </div>
+  `;
+
+  showModal(s.title, modalContent, 'info');
+};
+
+function showModal(title, body, type = 'info') {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  const borderColor = type === 'error' ? 'var(--error)' : type === 'warning' ? 'var(--warning)' : 'var(--primary)';
+  overlay.innerHTML = `
+    <div class="modal" style="border-top:3px solid ${borderColor};max-width:700px;">
+      <div class="modal-title">${title}</div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-sm" onclick="this.closest('.modal-overlay').remove()">确认</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function renderFormulas() {
