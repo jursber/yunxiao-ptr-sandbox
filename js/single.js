@@ -382,11 +382,12 @@ function renderQueueChart(result) {
 
   const queue = result.fullQueue;
   const atc = result.atc;
-  const chartW = container.clientWidth;
-  const chartH = 100; // 进一步降低高度
-  const padL = 80, padR = 20, padT = 5, padB = 15;
-  const barH = 14; // 横向柱子高度
-  const barGap = 3;
+  const chartW = container.clientWidth - 40; // 左右留边距
+  const chartH = container.clientHeight - 20; // 上下留边距
+  const padL = 100, padR = 40, padT = 10, padB = 20;
+  const plotH = chartH - padT - padB;
+  const barH = Math.floor(plotH / queue.length) - 2; // 动态计算柱子高度
+  const barGap = 2;
   const maxQty = Math.max(...queue.map(b => b.qty));
   const plotW = chartW - padL - padR;
 
@@ -416,11 +417,12 @@ function renderQueueChart(result) {
   }
 
   container.innerHTML = `
-    <svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" style="background:#f8fafc;border-radius:8px;">
+    <svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" style="background:#f8fafc;border-radius:8px;margin:10px 20px;">
       ${bars}
       <line x1="${atcLineX}" y1="${padT}" x2="${atcLineX}" y2="${padT + queue.length * (barH + barGap)}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 2"/>
-      <text x="${atcLineX}" y="${padT + queue.length * (barH + barGap) + 14}" text-anchor="middle" font-size="9" font-weight="600" fill="#ef4444">ATC</text>
+      <text x="${atcLineX}" y="${chartH - 5}" text-anchor="middle" font-size="9" font-weight="600" fill="#ef4444">ATC</text>
     </svg>`;
+}
 }
 
 function renderSettlement(result, settlement) {

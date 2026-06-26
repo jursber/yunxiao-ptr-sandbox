@@ -545,8 +545,8 @@ function renderBreakEvenAnalysis(analysis) {
 function renderChart() {
   const container = document.getElementById('multi-chart-container');
   if (!container) return;
-  const w = container.clientWidth;
-  const h = 260;
+  const w = container.clientWidth - 40; // 左右留边距
+  const h = container.clientHeight - 20; // 上下留边距
   const s = SCENARIOS[currentScenario];
   const count = bidPrices.length;
   const monthly = timeMode === 'monthly' ? generateMonthlyData(currentScenario) : null;
@@ -612,7 +612,7 @@ function renderChart() {
   }).join('') : '';
 
   container.innerHTML = `
-    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="margin:10px 20px;">
       ${yLabels}
       ${atcBars}
       ${xLabels}

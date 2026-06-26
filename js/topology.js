@@ -24,7 +24,7 @@ export function initCompactTopology(containerId) {
 }
 
 function renderSVG(container, compact) {
-  const vb = compact ? '40 60 800 260' : '0 0 920 400';
+  const vb = compact ? '20 50 840 280' : '0 0 920 400';
   const nodeR = compact ? 16 : 18;
   const convR = compact ? 18 : 22;
   const nameFontSize = compact ? 10 : 11;
