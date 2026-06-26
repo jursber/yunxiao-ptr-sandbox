@@ -621,8 +621,23 @@ label {
   display: grid;
   grid-template-columns: 1fr 490px;
   gap: 12px;
-  max-height: calc(100vh - 80px);
+  height: 100%;
+  overflow: hidden;
 }
+
+.topo-layout > .panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.topo-layout > .panel > .panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 @media (max-width: 1200px) {
   .topo-layout { grid-template-columns: 1fr; }
 }
