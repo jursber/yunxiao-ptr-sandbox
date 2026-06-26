@@ -24,12 +24,12 @@ export function initCompactTopology(containerId) {
 }
 
 function renderSVG(container, compact) {
-  const vb = compact ? '60 60 760 320' : '0 0 880 440';
-  const nodeR = compact ? 20 : 24;
-  const convR = compact ? 22 : 28;
-  const nameFontSize = compact ? 9 : 11;
-  const subFontSize = compact ? 7 : 9;
-  const tagFontSize = compact ? 7 : 9;
+  const vb = compact ? '40 60 800 320' : '20 20 920 400';
+  const nodeR = compact ? 16 : 18;
+  const convR = compact ? 18 : 22;
+  const nameFontSize = compact ? 10 : 11;
+  const subFontSize = compact ? 8 : 9;
+  const tagFontSize = compact ? 8 : 9;
 
   function renderNodesCompact() {
     return NODES.map(n => {
@@ -85,8 +85,8 @@ function renderSVG(container, compact) {
 
       return `<g class="topo-node" data-id="${n.id}" ${clickHandler} style="${cursorStyle}">
         <circle cx="${n.x}" cy="${n.y}" r="${r}" class="${nodeClass}" ${strokeDash}/>
-        <text x="${n.x}" y="${n.y - 2}" class="topo-node-name" font-size="${nameFontSize}">${n.name}</text>
-        ${n.base_price && !compact ? `<text x="${n.x}" y="${n.y + 12}" class="topo-node-sub">${n.base_price}元</text>` : ''}
+        <text x="${n.x}" y="${n.y + 3}" class="topo-node-name" font-size="${nameFontSize}" text-anchor="middle">${n.name}</text>
+        ${n.base_price && !compact ? `<text x="${n.x}" y="${n.y + r + 14}" class="topo-node-sub" font-size="${subFontSize}" text-anchor="middle">${n.base_price}元</text>` : ''}
         ${tags}
         ${dataLabel}
       </g>`;
@@ -100,12 +100,17 @@ function renderSVG(container, compact) {
       if (!from || !to) return '';
       const isDC = e.isDC;
       let cls = isDC ? 'topo-edge dc-line flowing' : 'topo-edge';
-      const marker = isDC ? `marker-end="url(#arrow${isBlocked ? 'Red' : 'Blue'})"` : '';
+
+      // 所有线路都添加箭头
+      const marker = isDC
+        ? `marker-end="url(#arrow${isBlocked ? 'Red' : 'Blue'}${compact ? '-c' : ''})"`
+        : `marker-end="url(#arrowGray${compact ? '-c' : ''})"`;
+
       let labelHtml = '';
-      if (e.label && !compact) {
+      if (e.label && !compact && !isDC) {
         const mx = (from.x + to.x) / 2;
         const my = (from.y + to.y) / 2 - 8;
-        labelHtml = `<text x="${mx}" y="${my}" class="topo-label" font-size="9">${e.label}</text>`;
+        labelHtml = `<text x="${mx}" y="${my}" class="topo-label" font-size="8">${e.label}</text>`;
       }
       // 联动：中标时DC连线变绿
       if (isDC && lastClearingResult && lastClearingResult.isUserWon) {
@@ -116,7 +121,8 @@ function renderSVG(container, compact) {
   }
 
   const atc = calcATC(currentScenario);
-  const dcLabelY = compact ? 155 : 155;
+  const dcLabelY = compact ? 135 : 140;
+  const dcMidX = compact ? 460 : 460;
 
   const svg = `<svg class="${compact ? 'topo-compact-svg' : 'topo-svg'}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -133,22 +139,30 @@ function renderSVG(container, compact) {
           <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" repeatCount="indefinite"/>
         </polygon>
       </marker>
+      <marker id="arrowGray${compact ? '-c' : ''}" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0,0 8,3 0,6" fill="#94a3b8" opacity="0.6">
+          <animate attributeName="opacity" values="0.6;0.3;0.6" dur="1.5s" repeatCount="indefinite"/>
+        </polygon>
+      </marker>
     </defs>
-    <rect width="880" height="440" fill="url(#grid${compact ? '-c' : ''})"/>
+    <rect width="${compact ? '800' : '920'}" height="${compact ? '320' : '400'}" fill="url(#grid${compact ? '-c' : ''})"/>
 
     ${!compact ? `
     <text x="160" y="25" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">华东 / 福建电网</text>
-    <text x="660" y="25" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">南方 / 广东电网</text>
-    <text x="410" y="120" class="topo-label" font-size="10" fill="#94a3b8">闽粤联网直流</text>
+    <text x="680" y="25" class="topo-label" font-size="11" font-weight="600" fill="#64748b" letter-spacing="0.08em">南方 / 广东电网</text>
     ` : ''}
 
     ${renderEdgesCompact()}
     ${renderNodesCompact()}
 
-    <g id="dc-label${compact ? '-c' : ''}" transform="translate(445, ${dcLabelY})">
-      <rect x="-55" y="-22" width="110" height="44" rx="6" fill="rgba(255,255,255,0.92)" stroke="#d1d5db" stroke-width="1"/>
-      <text x="0" y="-6" text-anchor="middle" font-size="${compact ? 9 : 11}" font-weight="600" fill="#1e293b" font-family="var(--mono)" id="dc-capacity${compact ? '-c' : ''}">ATC: ${atc}MW</text>
-      <text x="0" y="10" text-anchor="middle" font-size="${compact ? 7 : 9}" fill="#10b981" id="dc-status${compact ? '-c' : ''}">状态: 正常</text>
+    <!-- DC线路标签：闽粤联网直流 -->
+    <text x="${dcMidX}" y="195" text-anchor="middle" font-size="11" font-weight="700" fill="#1e293b">闽粤联网直流</text>
+
+    <!-- ATC状态标签：移到线路上方 -->
+    <g id="dc-label${compact ? '-c' : ''}" transform="translate(${dcMidX}, ${dcLabelY})">
+      <rect x="-45" y="-18" width="90" height="36" rx="6" fill="rgba(255,255,255,0.95)" stroke="#d1d5db" stroke-width="1"/>
+      <text x="0" y="-3" text-anchor="middle" font-size="10" font-weight="600" fill="#1e293b" font-family="var(--mono)" id="dc-capacity${compact ? '-c' : ''}">ATC: ${atc}MW</text>
+      <text x="0" y="10" text-anchor="middle" font-size="8" fill="#10b981" id="dc-status${compact ? '-c' : ''}">状态: 正常</text>
     </g>
   </svg>`;
   container.innerHTML = svg;

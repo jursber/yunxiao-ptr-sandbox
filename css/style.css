@@ -327,12 +327,14 @@ label {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
 }
 .topo-node-circle.won {
-  fill: #f0fdf4;
-  stroke: var(--success);
+  fill: #eff6ff;
+  stroke: #2563eb;
+  stroke-width: 3;
 }
 .topo-node-circle.lost {
   fill: #f8fafc;
-  stroke: #e2e8f0;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
 }
 .topo-node-name {
   font-size: 12px;
@@ -582,12 +584,12 @@ label {
 /* --- Three-column layout for single/multi --- */
 .three-col-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
+  grid-template-columns: 320px 1fr 360px;
   gap: 12px;
   align-items: start;
 }
 @media (max-width: 1400px) {
-  .three-col-layout { grid-template-columns: 260px 1fr 300px; }
+  .three-col-layout { grid-template-columns: 300px 1fr 340px; }
 }
 @media (max-width: 1200px) {
   .three-col-layout { grid-template-columns: 1fr; }

@@ -116,6 +116,20 @@ function renderFAQ() {
 function renderScenarioAnalysis() {
   const scenarios = [
     {
+      id: 'flat',
+      title: '日常运行',
+      icon: '☀️',
+      color: '#10b981',
+      physics: '气温适宜，两省负荷平稳，通道容量充裕，价差适中，是最舒服的交易环境。',
+      params: [
+        { key: '两省电价', value: '平稳（闽330-480，粤370-590）', impact: '价差适中，套利空间稳定' },
+        { key: 'ATC容量', value: '1200MW（最宽裕）', impact: '通道充裕，无物理约束' },
+        { key: '网架约束', value: '200MW（最低）', impact: '系统运行平稳，无特殊约束' }
+      ],
+      consequence: '日常运行状态，通道最宽裕，价差适中。适合稳定套利，竞争相对温和。',
+      strategy: '理性报价即可，关注价差波动。可适当降低报价以确保中标率，利润空间虽不如极端场景但风险可控。'
+    },
+    {
       id: 'windy',
       title: '寒潮大风（风电暴发场景）',
       icon: '🌬️',
@@ -131,7 +145,7 @@ function renderScenarioAnalysis() {
     },
     {
       id: 'hot',
-      title: '迎峰度夏（高温网架重载场景）',
+      title: '夏季尖峰（高温网架重载场景）',
       icon: '🔥',
       color: '#ef4444',
       physics: '夏季高温导致两省电力负荷齐升。广东空调负荷占比极高，受端节点电价极度敏感。福建为保证核电出力安全，需严控网架潮流流向。',
@@ -144,32 +158,18 @@ function renderScenarioAnalysis() {
       strategy: '最高价抢通道，容量尽量饱和。此场景下价差巨大，即使高价中标也能获得丰厚利润。'
     },
     {
-      id: 'flat',
-      title: '春季检修（检修窗口场景）',
-      icon: '🔧',
+      id: 'reverse',
+      title: '反向潮流（价差逆转场景）',
+      icon: '⚡',
       color: '#f59e0b',
-      physics: '全网设备检修季。云霄换流站一极进行定期停运检修，通道整体输电容量直接"腰斩"。',
+      physics: '广东清洁能源过剩或福建核电检修，导致价差逆转。广东电价低于福建，电从粤送到闽，稳控约束加强。',
       params: [
-        { key: 'ATC固定值', value: '1000MW', impact: '检修期间的额定保障能力' },
-        { key: '检修标志', value: '激活规则引擎', impact: '限制超1000MW合同履约优先级' },
-        { key: '价差走势', value: '相对平稳', impact: '无极端峰值但通道被物理卡死' }
+        { key: '价差逆转', value: '粤380-620 < 闽480-760', impact: '反向套利机会出现' },
+        { key: 'ATC削减', value: '700MW（中等）', impact: '反向潮流触发稳控约束' },
+        { key: '网架约束', value: '450MW（高）', impact: '交流联络线电压稳定性下降' }
       ],
-      consequence: '属于"策略型场景"。主要考察交易员在通道固定减容情况下，如何筛选最优电量进行履约，是对持有长期合同者最严酷的考验。',
-      strategy: '理性报价策略，精确计算盈亏平衡点。避免过度竞争导致中标价过高。'
-    },
-    {
-      id: 'holiday',
-      title: '节日低负荷（春节/国庆场景）',
-      icon: '🎉',
-      color: '#10b981',
-      physics: '全社会生产停工，负荷谷底。虽然通道容量看起来宽裕，但由于两省电价都较低，套利空间极小。',
-      params: [
-        { key: '两省电价', value: '双双走低', impact: '价差小于50元，套利空间狭窄' },
-        { key: 'ATC容量', value: '1500MW（宽松）', impact: '通道不挤但无利可图' },
-        { key: 'AI报价', value: '接近25.6元底线', impact: '市场竞争极其低迷' }
-      ],
-      consequence: '通道虽然不挤，但套利空间极小，甚至会出现"如果中标价高于边际收益，则中标即亏损"的负收益情况。',
-      strategy: '果断止损意识。在没利润时，宁可放弃申报也不要盲目追求中标率。考虑观望或极低价试探。'
+      consequence: '罕见但真实的场景。考察交易员对市场异常状态的应对能力。反向潮流下稳控约束更严格，ATC大幅削减。',
+      strategy: '关注价差逆转预警信号。反向潮流时竞争格局可能改变，需重新评估对手策略。'
     }
   ];
 
@@ -190,6 +190,18 @@ function renderScenarioAnalysis() {
 // 全局函数：显示场景详情
 window.showScenarioDetail = function(scenarioId) {
   const scenarios = {
+    flat: {
+      title: '日常运行',
+      icon: '☀️',
+      color: '#10b981',
+      params: [
+        { key: '两省电价', value: '平稳（闽330-480，粤370-590）', impact: '价差适中，套利空间稳定' },
+        { key: 'ATC容量', value: '1200MW（最宽裕）', impact: '通道充裕，无物理约束' },
+        { key: '网架约束', value: '200MW（最低）', impact: '系统运行平稳，无特殊约束' }
+      ],
+      consequence: '日常运行状态，通道最宽裕，价差适中。适合稳定套利，竞争相对温和。',
+      strategy: '理性报价即可，关注价差波动。可适当降低报价以确保中标率，利润空间虽不如极端场景但风险可控。'
+    },
     windy: {
       title: '寒潮大风（风电暴发场景）',
       icon: '🌬️',
@@ -203,7 +215,7 @@ window.showScenarioDetail = function(scenarioId) {
       strategy: '激进报价策略，接近上限抢通道。关注风电出力预测，提前布局。'
     },
     hot: {
-      title: '迎峰度夏（高温网架重载场景）',
+      title: '夏季尖峰（高温网架重载场景）',
       icon: '🔥',
       color: '#ef4444',
       params: [
@@ -214,29 +226,17 @@ window.showScenarioDetail = function(scenarioId) {
       consequence: '价格战最惨烈的场景。交易员报价极其趋近100元上限。中标即"发财"，落标即"巨亏"。',
       strategy: '最高价抢通道，容量尽量饱和。此场景下价差巨大，即使高价中标也能获得丰厚利润。'
     },
-    flat: {
-      title: '春季检修（检修窗口场景）',
-      icon: '🔧',
+    reverse: {
+      title: '反向潮流（价差逆转场景）',
+      icon: '⚡',
       color: '#f59e0b',
       params: [
-        { key: 'ATC固定值', value: '1000MW', impact: '检修期间的额定保障能力' },
-        { key: '检修标志', value: '激活规则引擎', impact: '限制超1000MW合同履约优先级' },
-        { key: '价差走势', value: '相对平稳', impact: '无极端峰值但通道被物理卡死' }
+        { key: '价差逆转', value: '粤380-620 < 闽480-760', impact: '反向套利机会出现' },
+        { key: 'ATC削减', value: '700MW（中等）', impact: '反向潮流触发稳控约束' },
+        { key: '网架约束', value: '450MW（高）', impact: '交流联络线电压稳定性下降' }
       ],
-      consequence: '属于"策略型场景"。主要考察交易员在通道固定减容情况下，如何筛选最优电量进行履约，是对持有长期合同者最严酷的考验。',
-      strategy: '理性报价策略，精确计算盈亏平衡点。避免过度竞争导致中标价过高。'
-    },
-    holiday: {
-      title: '节日低负荷（春节/国庆场景）',
-      icon: '🎉',
-      color: '#10b981',
-      params: [
-        { key: '两省电价', value: '双双走低', impact: '价差小于50元，套利空间狭窄' },
-        { key: 'ATC容量', value: '1500MW（宽松）', impact: '通道不挤但无利可图' },
-        { key: 'AI报价', value: '接近25.6元底线', impact: '市场竞争极其低迷' }
-      ],
-      consequence: '通道虽然不挤，但套利空间极小，甚至会出现"如果中标价高于边际收益，则中标即亏损"的负收益情况。',
-      strategy: '果断止损意识。在没利润时，宁可放弃申报也不要盲目追求中标率。考虑观望或极低价试探。'
+      consequence: '罕见但真实的场景。考察交易员对市场异常状态的应对能力。反向潮流下稳控约束更严格，ATC大幅削减。',
+      strategy: '关注价差逆转预警信号。反向潮流时竞争格局可能改变，需重新评估对手策略。'
     }
   };
 

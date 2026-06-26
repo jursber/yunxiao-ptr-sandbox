@@ -55,13 +55,13 @@ export const NODES = [
   { id: 'gen_zz',  name: '漳州核电',   type: 'generator_nuclear', capacity_mw: 2200,  base_price: 385, cost_curve: 'nuclear', x: 180, y: 260, side: 'fj' },
   { id: 'gen_pt',  name: '平潭风电',   type: 'generator_wind',    capacity_mw: 3000,  base_price: 0,   cost_curve: 'wind',    x: 120, y: 280, side: 'fj' },
   { id: 'grid_fj', name: '福建主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 280, y: 170, side: 'fj' },
-  { id: 'load_fj', name: '福建副负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 220, y: 340, side: 'fj' },
+  { id: 'load_fj', name: '福建负荷',   type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 220, y: 340, side: 'fj' },
   { id: 'cv_yx',   name: '云霄换流站', type: 'converter_fujian',  capacity_mw: 2000,  base_price: 0,   cost_curve: null,      x: 390, y: 170, side: 'link' },
-  { id: 'cv_ec',   name: '鹅城换流站', type: 'converter_guangdong', capacity_mw: 2000, base_price: 0,   cost_curve: null,      x: 500, y: 170, side: 'link' },
-  { id: 'grid_gd', name: '广东主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 610, y: 170, side: 'gd' },
-  { id: 'gen_hm',  name: '华能海门',   type: 'generator_coal',    capacity_mw: 4000,  base_price: 450, cost_curve: 'coal',    x: 730, y: 80,  side: 'gd' },
-  { id: 'gen_hz',  name: '惠州燃气',   type: 'generator_gas',     capacity_mw: 3000,  base_price: 650, cost_curve: 'gas',     x: 760, y: 260, side: 'gd' },
-  { id: 'load_gd', name: '珠三角负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 680, y: 350, side: 'gd' },
+  { id: 'cv_ec',   name: '鹅城换流站', type: 'converter_guangdong', capacity_mw: 2000, base_price: 0,   cost_curve: null,      x: 530, y: 170, side: 'link' },
+  { id: 'grid_gd', name: '广东主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 640, y: 170, side: 'gd' },
+  { id: 'gen_hm',  name: '华能海门',   type: 'generator_coal',    capacity_mw: 4000,  base_price: 450, cost_curve: 'coal',    x: 760, y: 80,  side: 'gd' },
+  { id: 'gen_hz',  name: '惠州燃气',   type: 'generator_gas',     capacity_mw: 3000,  base_price: 650, cost_curve: 'gas',     x: 790, y: 260, side: 'gd' },
+  { id: 'load_gd', name: '珠三角负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 710, y: 350, side: 'gd' },
 ];
 
 // --- 连线 ---
@@ -81,6 +81,15 @@ export const EDGES = [
 
 // --- 四场景数据 ---
 export const SCENARIOS = {
+  flat: {
+    name: '日常运行',
+    desc: '气温适宜，负荷平稳，通道充裕，价差适中',
+    flow_direction: 'forward',
+    atc: 1200,
+    grid_constraint: 200,
+    fj_spot: [360,350,340,330,330,340,360,380,410,430,440,410,380,390,410,430,450,460,470,480,470,450,410,380],
+    gd_spot: [410,400,390,380,370,390,420,450,480,510,520,490,460,470,490,510,540,560,580,590,580,550,510,460],
+  },
   windy: {
     name: '寒潮大风',
     desc: '风电大发，核电满发，福建电力富余外送需求强',
@@ -99,18 +108,9 @@ export const SCENARIOS = {
     fj_spot: [320,310,300,280,280,290,320,350,380,410,420,390,350,360,380,410,450,480,510,520,510,480,420,350],
     gd_spot: [580,550,510,480,460,510,620,750,850,920,950,910,820,850,890,920,980,1000,1000,980,920,850,750,620],
   },
-  flat: {
-    name: '平枯普通',
-    desc: '气温适宜，负荷平稳，通道充裕',
-    flow_direction: 'forward',
-    atc: 1200,
-    grid_constraint: 200,
-    fj_spot: [360,350,340,330,330,340,360,380,410,430,440,410,380,390,410,430,450,460,470,480,470,450,410,380],
-    gd_spot: [410,400,390,380,370,390,420,450,480,510,520,490,460,470,490,510,540,560,580,590,580,550,510,460],
-  },
   reverse: {
     name: '反向潮流',
-    desc: '广东电价低于福建，通道反向送电（粤→闽）',
+    desc: '广东清洁能源过剩，价差逆转，通道反向送电（粤→闽）',
     flow_direction: 'reverse',
     atc: 700,
     grid_constraint: 450,
