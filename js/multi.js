@@ -329,18 +329,18 @@ function updateDispatchSummary() {
 
   el.innerHTML = `
     <div class="text-xs font-semibold text-muted uppercase mb-1">多时段调度汇总</div>
-    <div class="grid-3" style="gap:4px;">
-      <div class="card" style="padding:4px 6px;text-align:center;">
-        <div class="text-xs text-muted">中标率</div>
-        <div class="mono font-semibold text-ink">${(wonCount/totalCount*100).toFixed(0)}%</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="card" style="padding:4px 8px;flex:1;display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-xs text-muted">中标率</span>
+        <span class="mono font-semibold text-ink">${(wonCount/totalCount*100).toFixed(0)}%</span>
       </div>
-      <div class="card" style="padding:4px 6px;text-align:center;">
-        <div class="text-xs text-muted">平均出清价</div>
-        <div class="mono font-semibold text-warning">${avgMcp}</div>
+      <div class="card" style="padding:4px 8px;flex:1;display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-xs text-muted">平均出清价</span>
+        <span class="mono font-semibold text-warning">${avgMcp}</span>
       </div>
-      <div class="card" style="padding:4px 6px;text-align:center;">
-        <div class="text-xs text-muted">中标/总计</div>
-        <div class="mono font-semibold text-ink">${wonCount}/${totalCount}</div>
+      <div class="card" style="padding:4px 8px;flex:1;display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-xs text-muted">中标/总计</span>
+        <span class="mono font-semibold text-ink">${wonCount}/${totalCount}</span>
       </div>
     </div>`;
 }

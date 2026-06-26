@@ -24,12 +24,12 @@ export function initCompactTopology(containerId) {
 }
 
 function renderSVG(container, compact) {
-  const vb = compact ? '40 60 800 280' : '0 0 920 400';
-  const nodeR = compact ? 14 : 16;
-  const convR = compact ? 16 : 18;
-  const nameFontSize = compact ? 9 : 10;
-  const subFontSize = compact ? 7 : 8;
-  const tagFontSize = compact ? 8 : 9;
+  const vb = compact ? '40 60 800 260' : '0 0 920 400';
+  const nodeR = compact ? 16 : 18;
+  const convR = compact ? 18 : 22;
+  const nameFontSize = compact ? 10 : 11;
+  const subFontSize = compact ? 8 : 9;
+  const tagFontSize = compact ? 9 : 10;
 
   function renderNodesCompact() {
     return NODES.map(n => {

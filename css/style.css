@@ -77,7 +77,7 @@ h3 { font-size: 13px; font-weight: 600; color: var(--ink); }
   top: 0;
   z-index: 100;
 }
-.topbar-brand { display: flex; align-items: center; gap: 10px; }
+.topbar-brand { display: flex; align-items: center; gap: 10px; width: 280px; }
 .topbar-brand .logo {
   width: 32px; height: 32px;
   background: var(--primary);
@@ -88,8 +88,14 @@ h3 { font-size: 13px; font-weight: 600; color: var(--ink); }
 .topbar-title { font-size: 16px; font-weight: 700; color: var(--ink); }
 .topbar-subtitle { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
-/* Header Tabs */
-.header-tabs { display: flex; gap: 4px; }
+/* Header Tabs - 居中 */
+.header-tabs {
+  display: flex;
+  gap: 4px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
 .header-tab-btn {
   padding: 8px 20px;
   border: none;
@@ -124,6 +130,8 @@ h3 { font-size: 13px; font-weight: 600; color: var(--ink); }
   padding: 12px;
   max-width: 1920px;
   margin: 0 auto;
+  height: calc(100vh - 56px);
+  overflow: hidden;
 }
 
 /* --- Tabs --- */
@@ -624,8 +632,7 @@ label {
   display: grid;
   grid-template-columns: 340px 1fr 380px;
   gap: 12px;
-  align-items: start;
-  max-height: calc(100vh - 80px);
+  height: 100%;
   overflow: hidden;
 }
 @media (max-width: 1400px) {
@@ -635,9 +642,50 @@ label {
   .three-col-layout { grid-template-columns: 1fr; }
 }
 
+/* 中间栏固定布局 */
+.three-col-layout > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.three-col-layout > div:nth-child(2) > .panel:first-child {
+  flex-shrink: 0;
+  height: 80px;
+}
+
+.three-col-layout > div:nth-child(2) > .panel:nth-child(2) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.three-col-layout > div:nth-child(2) > .panel:nth-child(2) > .panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.three-col-layout > div:nth-child(2) > .panel:last-child {
+  flex-shrink: 0;
+  height: 120px;
+}
+
 /* --- Compact topology --- */
-.topo-compact-svg { width: 100%; height: auto; display: block; max-height: 180px; }
-.topo-compact-container { max-height: 180px; overflow: hidden; }
+.topo-compact-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.topo-compact-container {
+  height: 100%;
+  overflow: hidden;
+}
 
 /* --- Dispatch result mini panel --- */
 .dispatch-grid {

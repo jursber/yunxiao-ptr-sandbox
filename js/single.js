@@ -81,7 +81,7 @@ function buildHTML() {
             <span id="single-scenario-badge" class="badge badge-primary">平枯普通</span>
           </div>
           <div class="panel-body">
-            <div class="grid-3" id="single-scene-info"></div>
+            <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;" id="single-scene-info"></div>
           </div>
         </div>
 
@@ -237,14 +237,9 @@ function updateSceneInfo() {
     info.innerHTML = `
       <div class="kpi-card"><div class="kpi-label">福建现货价</div><div class="kpi-value">${s.fj_spot[currentHour]}<span class="kpi-unit">元/MWh</span></div></div>
       <div class="kpi-card"><div class="kpi-label">广东现货价</div><div class="kpi-value">${s.gd_spot[currentHour]}<span class="kpi-unit">元/MWh</span></div></div>
-      <div class="kpi-card"><div class="kpi-label">可用通道 ATC</div><div class="kpi-value">${atcInfo.atc}<span class="kpi-unit">MW</span></div></div>
+      <div class="kpi-card"><div class="kpi-label">可用通道</div><div class="kpi-value">${atcInfo.atc}<span class="kpi-unit">MW</span></div></div>
       <div class="kpi-card"><div class="kpi-label">风电出力</div><div class="kpi-value">${atcInfo.windOutput}<span class="kpi-unit">MW</span></div></div>
-      <div class="kpi-card" style="grid-column: span 2;">
-        <div class="kpi-label">潮流方向</div>
-        <div class="kpi-value" style="font-size:14px;">
-          ${flowInfo.direction === 'reverse' ? '⬅️ 粤→闽' : '➡️ 闽→粤'}
-        </div>
-      </div>`;
+      <div class="kpi-card"><div class="kpi-label">潮流方向</div><div class="kpi-value" style="font-size:12px;">${flowInfo.direction === 'reverse' ? '⬅️粤→闽' : '➡️闽→粤'}</div></div>`;
   }
 
   const hourSel = document.getElementById('single-hour');
@@ -388,10 +383,10 @@ function renderQueueChart(result) {
   const queue = result.fullQueue;
   const atc = result.atc;
   const chartW = container.clientWidth;
-  const chartH = 120; // 大幅降低高度
-  const padL = 80, padR = 20, padT = 10, padB = 30;
-  const barH = 16; // 横向柱子高度
-  const barGap = 4;
+  const chartH = 100; // 进一步降低高度
+  const padL = 80, padR = 20, padT = 5, padB = 15;
+  const barH = 14; // 横向柱子高度
+  const barGap = 3;
   const maxQty = Math.max(...queue.map(b => b.qty));
   const plotW = chartW - padL - padR;
 
@@ -424,8 +419,7 @@ function renderQueueChart(result) {
     <svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" style="background:#f8fafc;border-radius:8px;">
       ${bars}
       <line x1="${atcLineX}" y1="${padT}" x2="${atcLineX}" y2="${padT + queue.length * (barH + barGap)}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 2"/>
-      <text x="${atcLineX}" y="${padT + queue.length * (barH + barGap) + 18}" text-anchor="middle" font-size="10" font-weight="600" fill="#ef4444">ATC: ${atc}MW</text>
-      <text x="${chartW/2}" y="${chartH - 4}" text-anchor="middle" font-size="11" fill="#64748b">竞价排队图（横向柱状图）</text>
+      <text x="${atcLineX}" y="${padT + queue.length * (barH + barGap) + 14}" text-anchor="middle" font-size="9" font-weight="600" fill="#ef4444">ATC</text>
     </svg>`;
 }
 
