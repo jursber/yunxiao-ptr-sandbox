@@ -172,7 +172,7 @@ export function setMultiScenario(s) {
 
 function updateSceneInfo() {
   const s = SCENARIOS[currentScenario];
-  const atc = calcATC(currentScenario);
+  const atcInfo = calcATC(currentScenario, 12);
   const info = document.getElementById('multi-scene-info');
   if (info) {
     const avgFj = Math.round(s.fj_spot.reduce((a,b)=>a+b,0)/24);
@@ -180,7 +180,7 @@ function updateSceneInfo() {
     info.innerHTML = `
       <div class="kpi-card"><div class="kpi-label">日均福建现货</div><div class="kpi-value">${avgFj}<span class="kpi-unit">元</span></div></div>
       <div class="kpi-card"><div class="kpi-label">日均广东现货</div><div class="kpi-value">${avgGd}<span class="kpi-unit">元</span></div></div>
-      <div class="kpi-card"><div class="kpi-label">通道 ATC</div><div class="kpi-value">${atc}<span class="kpi-unit">MW</span></div></div>`;
+      <div class="kpi-card"><div class="kpi-label">通道 ATC</div><div class="kpi-value">${atcInfo.atc}<span class="kpi-unit">MW</span></div></div>`;
   }
 }
 
@@ -188,7 +188,6 @@ function renderBidTable() {
   const container = document.getElementById('multi-bid-table');
   if (!container) return;
   const s = SCENARIOS[currentScenario];
-  const atc = calcATC(currentScenario);
   const count = bidPrices.length;
   const monthly = timeMode === 'monthly' ? generateMonthlyData(currentScenario) : null;
 
@@ -197,7 +196,9 @@ function renderBidTable() {
     const label = timeMode === 'daily' ? `${String(i).padStart(2, '0')}:00` : `第${i + 1}天`;
     const fjSpot = timeMode === 'daily' ? s.fj_spot[i] : monthly[i].fj_spot.reduce((a,b)=>a+b,0)/24;
     const gdSpot = timeMode === 'daily' ? s.gd_spot[i] : monthly[i].gd_spot.reduce((a,b)=>a+b,0)/24;
-    const curAtc = timeMode === 'daily' ? atc : monthly[i].atc;
+    const hour = timeMode === 'daily' ? i : 12;
+    const atcInfo = calcATC(currentScenario, hour);
+    const curAtc = timeMode === 'daily' ? atcInfo.atc : monthly[i].atc;
     const won = clearResults.length > i ? clearResults[i]?.result.isUserWon : null;
     const wonBadge = won === null ? '' : won ? '<span class="badge badge-success">中标</span>' : '<span class="badge badge-error">落标</span>';
 
@@ -233,14 +234,15 @@ function renderBidTable() {
 function runBatchClearing() {
   const count = bidPrices.length;
   clearResults = [];
-  const atc = calcATC(currentScenario);
   const monthly = timeMode === 'monthly' ? generateMonthlyData(currentScenario) : null;
 
   for (let i = 0; i < count; i++) {
-    const curAtc = timeMode === 'daily' ? atc : monthly[i].atc;
-    const aiBids = generateAIBids(currentScenario, timeMode === 'daily' ? i : 12);
+    const hour = timeMode === 'daily' ? i : 12;
+    const atcInfo = calcATC(currentScenario, hour);
+    const curAtc = timeMode === 'daily' ? atcInfo.atc : monthly[i].atc;
+    const aiBids = generateAIBids(currentScenario, hour);
     const result = runMCPClearing(bidPrices[i], 100, curAtc, aiBids);
-    const settlement = calcSettlement(result, currentScenario, timeMode === 'daily' ? i : 12);
+    const settlement = calcSettlement(result, currentScenario, hour);
     clearResults.push({ result, settlement });
   }
 
@@ -330,13 +332,19 @@ function renderChart() {
   const w = container.clientWidth;
   const h = 260;
   const s = SCENARIOS[currentScenario];
-  const atc = calcATC(currentScenario);
   const count = bidPrices.length;
   const monthly = timeMode === 'monthly' ? generateMonthlyData(currentScenario) : null;
 
   const fjData = timeMode === 'daily' ? s.fj_spot : monthly.map(d => d.fj_spot.reduce((a,b)=>a+b,0)/24);
   const gdData = timeMode === 'daily' ? s.gd_spot : monthly.map(d => d.gd_spot.reduce((a,b)=>a+b,0)/24);
-  const atcData = timeMode === 'daily' ? Array(count).fill(atc) : monthly.map(d => d.atc);
+
+  // 获取每个时段的ATC
+  const atcData = [];
+  for (let i = 0; i < count; i++) {
+    const hour = timeMode === 'daily' ? i : 12;
+    const atcInfo = calcATC(currentScenario, hour);
+    atcData.push(timeMode === 'daily' ? atcInfo.atc : monthly[i].atc);
+  }
 
   const allPrices = [...fjData, ...gdData, ...bidPrices];
   const minP = Math.min(...allPrices) - 20;

@@ -1,7 +1,7 @@
 // ============================================================
 // 云霄直流PTR沙盘系统 — SVG拓扑图模块
 // ============================================================
-import { NODES, EDGES, SCENARIOS, P_FJ_CONTRACT, C_LOSS } from './data.js';
+import { NODES, EDGES, SCENARIOS, P_FJ_CONTRACT, C_LOSS, COST_TEMPLATES } from './data.js';
 import { calcATC } from './engine.js';
 
 let currentScenario = 'flat';
@@ -36,6 +36,7 @@ function renderSVG(container, compact) {
       const isRef = n.type === 'load_equivalent' || n.type === 'grid_equivalent';
       const strokeDash = isRef ? 'stroke-dasharray="4 2"' : '';
       const isGen = n.type.startsWith('generator');
+      const isWind = n.type === 'generator_wind';
       const isLoad = n.type === 'load_equivalent';
       const isConverter = n.type.startsWith('converter');
       const nodeClass = wonNodes.has(n.id) ? 'topo-node-circle won' : 'topo-node-circle';
@@ -43,9 +44,13 @@ function renderSVG(container, compact) {
 
       let tags = '';
       if (!compact) {
-        if (isGen) {
+        if (isGen && !isWind) {
           tags = `<rect x="${n.x - 33}" y="${n.y - r - 18}" width="66" height="18" rx="5" class="topo-tag topo-tag-gen"/>
             <text x="${n.x}" y="${n.y - r - 6}" text-anchor="middle" class="topo-tag-gen-text" font-size="${tagFontSize}" font-weight="600">发电 ${n.capacity_mw}MW</text>`;
+        }
+        if (isWind) {
+          tags = `<rect x="${n.x - 35}" y="${n.y - r - 18}" width="70" height="18" rx="5" class="topo-tag topo-tag-wind"/>
+            <text x="${n.x}" y="${n.y - r - 6}" text-anchor="middle" class="topo-tag-wind-text" font-size="${tagFontSize}" font-weight="600">🌬️ 风电 ${n.capacity_mw}MW</text>`;
         }
         if (isLoad) {
           tags = `<rect x="${n.x - 35}" y="${n.y - r - 18}" width="70" height="18" rx="5" class="topo-tag topo-tag-load"/>
@@ -69,8 +74,16 @@ function renderSVG(container, compact) {
         const gdPrice = lastClearingResult.hour !== undefined ? s.gd_spot[lastClearingResult.hour] : '--';
         dataLabel = `<text x="${n.x}" y="${n.y + r + 8}" text-anchor="middle" font-size="${subFontSize}" fill="#ef4444" font-family="var(--mono)">${gdPrice}元</text>`;
       }
+      if (lastClearingResult && isWind && n.id === 'gen_pt') {
+        const windOutput = lastClearingResult.windOutput || 0;
+        dataLabel = `<text x="${n.x}" y="${n.y + r + 8}" text-anchor="middle" font-size="${subFontSize}" fill="#10b981" font-family="var(--mono)">${windOutput}MW</text>`;
+      }
 
-      return `<g class="topo-node" data-id="${n.id}">
+      // 节点点击事件（用于显示成本曲线）
+      const clickHandler = n.cost_curve ? `onclick="window.showNodeCostCurve('${n.id}')"` : '';
+      const cursorStyle = n.cost_curve ? 'cursor:pointer;' : '';
+
+      return `<g class="topo-node" data-id="${n.id}" ${clickHandler} style="${cursorStyle}">
         <circle cx="${n.x}" cy="${n.y}" r="${r}" class="${nodeClass}" ${strokeDash}/>
         <text x="${n.x}" y="${n.y - 2}" class="topo-node-name" font-size="${nameFontSize}">${n.name}</text>
         ${n.base_price && !compact ? `<text x="${n.x}" y="${n.y + 12}" class="topo-node-sub">${n.base_price}元</text>` : ''}
@@ -145,8 +158,10 @@ function renderSVG(container, compact) {
 export function updateTopology(scenario, isUserWon, clearingResult) {
   currentScenario = scenario;
   const s = SCENARIOS[scenario];
-  const atc = calcATC(scenario);
-  isBlocked = scenario === 'hot';
+  const hour = clearingResult?.hour || 12;
+  const atcInfo = calcATC(scenario, hour);
+  const atc = atcInfo.atc;
+  isBlocked = scenario === 'hot' || s.flow_direction === 'reverse';
   if (clearingResult) lastClearingResult = clearingResult;
 
   // 更新DC通道状态（两种模式）
@@ -159,6 +174,20 @@ export function updateTopology(scenario, isUserWon, clearingResult) {
       // compact模式用不同的marker id
       if (dcLine.closest('.topo-compact-svg')) {
         dcLine.setAttribute('marker-end', isBlocked ? 'url(#arrowRed-c)' : 'url(#arrowBlue-c)');
+      }
+
+      // 拥挤感视觉反馈
+      if (clearingResult) {
+        const utilizationRate = (clearingResult.userWinQty / atc) * 100;
+        if (utilizationRate > 95) {
+          dcLine.classList.add('congested');
+          dcLine.style.animationDuration = '8s';
+          dcLine.style.animationTimingFunction = 'steps(5)';
+        } else {
+          dcLine.classList.remove('congested');
+          dcLine.style.animationDuration = '2s';
+          dcLine.style.animationTimingFunction = 'ease-in-out';
+        }
       }
     });
   });
@@ -252,4 +281,109 @@ export function resetTopology() {
   wonNodes.clear();
   isBlocked = false;
   lastClearingResult = null;
+}
+
+// --- 显示节点成本曲线模态框 ---
+window.showNodeCostCurve = function(nodeId) {
+  const node = NODES.find(n => n.id === nodeId);
+  if (!node || !node.cost_curve) return;
+
+  const template = COST_TEMPLATES[node.cost_curve];
+  if (!template) return;
+
+  // 渲染成本曲线图
+  const maxP = node.capacity_mw;
+  const points = [];
+  for (let p = 0; p <= maxP; p += maxP / 50) {
+    const cost = template.marginalCost(p);
+    points.push({ p, cost });
+  }
+
+  const w = 500;
+  const h = 300;
+  const padL = 60, padR = 20, padT = 30, padB = 40;
+  const cw = w - padL - padR;
+  const ch = h - padT - padB;
+
+  const maxCost = Math.max(...points.map(pt => pt.cost));
+  const minCost = Math.min(...points.map(pt => pt.cost));
+
+  function xPos(p) { return padL + (p / maxP) * cw; }
+  function yPos(cost) { return padT + ch - ((cost - minCost) / (maxCost - minCost)) * ch; }
+
+  const linePath = points.map((pt, i) =>
+    `${i === 0 ? 'M' : 'L'}${xPos(pt.p)},${yPos(pt.cost)}`
+  ).join(' ');
+
+  // 当前出力点（假设基荷运行）
+  const currentP = node.capacity_mw * 0.8;
+  const currentCost = template.marginalCost(currentP);
+
+  const svg = `
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#f8fafc;border-radius:8px;">
+      <!-- 网格线 -->
+      ${Array.from({length: 5}, (_, i) => {
+        const cost = minCost + (maxCost - minCost) * (i / 4);
+        const y = yPos(cost);
+        return `<line x1="${padL}" y1="${y}" x2="${padL + cw}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>
+                <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#94a3b8">${Math.round(cost)}</text>`;
+      }).join('')}
+
+      <!-- 坐标轴 -->
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + ch}" stroke="#64748b" stroke-width="2"/>
+      <line x1="${padL}" y1="${padT + ch}" x2="${padL + cw}" y2="${padT + ch}" stroke="#64748b" stroke-width="2"/>
+
+      <!-- 成本曲线 -->
+      <path d="${linePath}" fill="none" stroke="#3b82f6" stroke-width="3"/>
+
+      <!-- 当前出力点 -->
+      <circle cx="${xPos(currentP)}" cy="${yPos(currentCost)}" r="6" fill="#ef4444" stroke="white" stroke-width="2"/>
+      <line x1="${xPos(currentP)}" y1="${yPos(currentCost)}" x2="${xPos(currentP)}" y2="${padT + ch}" stroke="#ef4444" stroke-width="1" stroke-dasharray="4 2"/>
+
+      <!-- 标签 -->
+      <text x="${w/2}" y="${h - 10}" text-anchor="middle" font-size="12" fill="#475569">出力 (MW)</text>
+      <text x="20" y="${h/2}" text-anchor="middle" font-size="12" fill="#475569" transform="rotate(-90, 20, ${h/2})">边际成本 (元/MWh)</text>
+
+      <!-- 图例 -->
+      <text x="${padL + 10}" y="20" font-size="13" font-weight="600" fill="#1e293b">${node.name} — ${template.desc}</text>
+      <text x="${xPos(currentP) + 10}" y="${yPos(currentCost) - 10}" font-size="11" fill="#ef4444">
+        当前: ${Math.round(currentP)}MW, ${Math.round(currentCost)}元
+      </text>
+
+      <!-- X轴刻度 -->
+      ${Array.from({length: 6}, (_, i) => {
+        const p = (maxP / 5) * i;
+        return `<text x="${xPos(p)}" y="${padT + ch + 20}" text-anchor="middle" font-size="10" fill="#94a3b8">${Math.round(p)}</text>`;
+      }).join('')}
+    </svg>
+  `;
+
+  showModal(
+    `${node.name} 成本曲线`,
+    `<div class="text-xs text-muted mb-2">节点类型: ${template.type} | 装机容量: ${node.capacity_mw}MW</div>
+     ${svg}
+     <div class="text-xs text-muted mt-2" style="line-height:1.7;">
+       <strong>成本函数:</strong> C(P) = ${template.a > 0 ? template.a + 'P² + ' : ''}${template.b}P + ${template.c}<br/>
+       <strong>边际成本:</strong> MC(P) = ${template.a > 0 ? (2*template.a) + 'P + ' : ''}${template.b}
+     </div>`,
+    'info'
+  );
+}
+
+function showModal(title, body, type = 'info') {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  const borderColor = type === 'error' ? 'var(--error)' : type === 'warning' ? 'var(--warning)' : 'var(--primary)';
+  overlay.innerHTML = `
+    <div class="modal" style="border-top:3px solid ${borderColor};max-width:600px;">
+      <div class="modal-title">${title}</div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-sm" onclick="this.closest('.modal-overlay').remove()">确认</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }

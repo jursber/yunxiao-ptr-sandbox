@@ -368,6 +368,12 @@ label {
   stroke-dasharray: 8 4;
   animation: flow 0.8s linear infinite;
 }
+.topo-edge.dc-line.congested {
+  stroke: #f59e0b;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+  animation: flow 8s steps(5) infinite !important;
+}
 .topo-label {
   font-size: 10px;
   fill: var(--dim);
@@ -388,8 +394,14 @@ label {
   stroke: #bfdbfe;
   stroke-width: 1;
 }
+.topo-tag-wind {
+  fill: #f0fdf4;
+  stroke: #86efac;
+  stroke-width: 1;
+}
 .topo-tag-gen-text { fill: var(--success); }
 .topo-tag-load-text { fill: var(--primary); }
+.topo-tag-wind-text { fill: #10b981; }
 
 /* --- Animations --- */
 @keyframes flow {

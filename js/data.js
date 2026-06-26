@@ -12,19 +12,56 @@ export const P_SECURITY = 100;        // 安全裕度 MW
 export const BID_MIN = 25.6;          // 限价下限
 export const BID_MAX = 100.0;         // 限价上限
 
+// --- 成本曲线模板 ---
+export const COST_TEMPLATES = {
+  nuclear: {  // 核电：近乎水平线（零边际成本）
+    type: 'linear',
+    a: 0,
+    b: 0.01,
+    c: 100,
+    desc: '基荷核电，边际成本极低',
+    marginalCost: (P) => 0.01 * P + 100
+  },
+  coal: {  // 燃煤：线性上升
+    type: 'linear',
+    a: 0,
+    b: 0.3,
+    c: 200,
+    desc: '超超临界燃煤，边际成本随负荷线性增长',
+    marginalCost: (P) => 0.3 * P + 200
+  },
+  gas: {  // 燃气：二次函数（指数上升）
+    type: 'quadratic',
+    a: 0.0008,
+    b: 0.5,
+    c: 300,
+    desc: '燃气联合循环，调峰尖峰定价',
+    marginalCost: (P) => 0.0008 * P * P + 0.5 * P + 300
+  },
+  wind: {  // 风电：零成本
+    type: 'zero',
+    a: 0,
+    b: 0,
+    c: 0,
+    desc: '风力发电，零边际成本（但受气象波动影响）',
+    marginalCost: (P) => 0
+  }
+};
+
 // --- 拓扑节点 ---
 export const NODES = [
-  { id: 'gen_fq',  name: '福清核电',   type: 'generator_nuclear', capacity_mw: 6600,  base_price: 390, x: 130, y: 80,  side: 'fj' },
-  { id: 'gen_nd',  name: '宁德核电',   type: 'generator_nuclear', capacity_mw: 4356,  base_price: 380, x: 80,  y: 180, side: 'fj' },
-  { id: 'gen_zz',  name: '漳州核电',   type: 'generator_nuclear', capacity_mw: 2200,  base_price: 385, x: 180, y: 260, side: 'fj' },
-  { id: 'grid_fj', name: '福建主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   x: 280, y: 170, side: 'fj' },
-  { id: 'load_fj', name: '福建副负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   x: 220, y: 340, side: 'fj' },
-  { id: 'cv_yx',   name: '云霄换流站', type: 'converter_fujian',  capacity_mw: 2000,  base_price: 0,   x: 390, y: 170, side: 'link' },
-  { id: 'cv_ec',   name: '鹅城换流站', type: 'converter_guangdong', capacity_mw: 2000, base_price: 0,   x: 500, y: 170, side: 'link' },
-  { id: 'grid_gd', name: '广东主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   x: 610, y: 170, side: 'gd' },
-  { id: 'gen_hm',  name: '华能海门',   type: 'generator_coal',    capacity_mw: 4000,  base_price: 450, x: 730, y: 80,  side: 'gd' },
-  { id: 'gen_hz',  name: '惠州燃气',   type: 'generator_gas',     capacity_mw: 3000,  base_price: 650, x: 760, y: 260, side: 'gd' },
-  { id: 'load_gd', name: '珠三角负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   x: 680, y: 350, side: 'gd' },
+  { id: 'gen_fq',  name: '福清核电',   type: 'generator_nuclear', capacity_mw: 6600,  base_price: 390, cost_curve: 'nuclear', x: 130, y: 80,  side: 'fj' },
+  { id: 'gen_nd',  name: '宁德核电',   type: 'generator_nuclear', capacity_mw: 4356,  base_price: 380, cost_curve: 'nuclear', x: 80,  y: 180, side: 'fj' },
+  { id: 'gen_zz',  name: '漳州核电',   type: 'generator_nuclear', capacity_mw: 2200,  base_price: 385, cost_curve: 'nuclear', x: 180, y: 260, side: 'fj' },
+  { id: 'gen_pt',  name: '平潭风电',   type: 'generator_wind',    capacity_mw: 3000,  base_price: 0,   cost_curve: 'wind',    x: 120, y: 280, side: 'fj' },
+  { id: 'grid_fj', name: '福建主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 280, y: 170, side: 'fj' },
+  { id: 'load_fj', name: '福建副负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 220, y: 340, side: 'fj' },
+  { id: 'cv_yx',   name: '云霄换流站', type: 'converter_fujian',  capacity_mw: 2000,  base_price: 0,   cost_curve: null,      x: 390, y: 170, side: 'link' },
+  { id: 'cv_ec',   name: '鹅城换流站', type: 'converter_guangdong', capacity_mw: 2000, base_price: 0,   cost_curve: null,      x: 500, y: 170, side: 'link' },
+  { id: 'grid_gd', name: '广东主网',   type: 'grid_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 610, y: 170, side: 'gd' },
+  { id: 'gen_hm',  name: '华能海门',   type: 'generator_coal',    capacity_mw: 4000,  base_price: 450, cost_curve: 'coal',    x: 730, y: 80,  side: 'gd' },
+  { id: 'gen_hz',  name: '惠州燃气',   type: 'generator_gas',     capacity_mw: 3000,  base_price: 650, cost_curve: 'gas',     x: 760, y: 260, side: 'gd' },
+  { id: 'load_gd', name: '珠三角负荷', type: 'load_equivalent',   capacity_mw: 0,     base_price: 0,   cost_curve: null,      x: 680, y: 350, side: 'gd' },
 ];
 
 // --- 连线 ---
@@ -32,6 +69,7 @@ export const EDGES = [
   { from: 'gen_fq',  to: 'grid_fj', label: '核电基荷' },
   { from: 'gen_nd',  to: 'grid_fj', label: '远端支撑' },
   { from: 'gen_zz',  to: 'grid_fj', label: '近区支撑' },
+  { from: 'gen_pt',  to: 'grid_fj', label: '风电外送' },
   { from: 'grid_fj', to: 'cv_yx',   label: '外送通道', isLink: true },
   { from: 'cv_yx',   to: 'cv_ec',   label: '云霄直流', isDC: true },
   { from: 'cv_ec',   to: 'grid_gd', label: '受端入网' },
@@ -41,11 +79,12 @@ export const EDGES = [
   { from: 'grid_fj', to: 'load_fj', label: '省内负荷' },
 ];
 
-// --- 三场景数据 ---
+// --- 四场景数据 ---
 export const SCENARIOS = {
   windy: {
     name: '寒潮大风',
     desc: '风电大发，核电满发，福建电力富余外送需求强',
+    flow_direction: 'forward',
     atc: 900,
     grid_constraint: 200,
     fj_spot: [220,200,180,150,110,80,90,150,240,280,280,240,150,180,180,240,310,350,380,390,380,350,310,240],
@@ -54,6 +93,7 @@ export const SCENARIOS = {
   hot: {
     name: '夏季尖峰',
     desc: '高温酷暑，广东负荷飙升，燃气顶峰，价差巨大',
+    flow_direction: 'forward',
     atc: 500,
     grid_constraint: 600,
     fj_spot: [320,310,300,280,280,290,320,350,380,410,420,390,350,360,380,410,450,480,510,520,510,480,420,350],
@@ -62,10 +102,20 @@ export const SCENARIOS = {
   flat: {
     name: '平枯普通',
     desc: '气温适宜，负荷平稳，通道充裕',
+    flow_direction: 'forward',
     atc: 1200,
     grid_constraint: 200,
     fj_spot: [360,350,340,330,330,340,360,380,410,430,440,410,380,390,410,430,450,460,470,480,470,450,410,380],
     gd_spot: [410,400,390,380,370,390,420,450,480,510,520,490,460,470,490,510,540,560,580,590,580,550,510,460],
+  },
+  reverse: {
+    name: '反向潮流',
+    desc: '广东电价低于福建，通道反向送电（粤→闽）',
+    flow_direction: 'reverse',
+    atc: 700,
+    grid_constraint: 450,
+    fj_spot: [520,510,500,490,480,500,530,560,590,620,640,610,580,590,610,640,680,710,740,760,750,720,680,620],
+    gd_spot: [420,410,400,390,380,400,430,460,490,520,540,510,480,490,510,540,570,590,610,620,610,580,540,490],
   }
 };
 

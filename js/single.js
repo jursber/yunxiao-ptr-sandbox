@@ -2,12 +2,14 @@
 // 云霄直流PTR沙盘系统 — 单时段出清模块（三栏布局）
 // ============================================================
 import { SCENARIOS, P_FJ_CONTRACT, C_LOSS, BID_MIN, BID_MAX, generateAIBids } from './data.js';
-import { runMCPClearing, calcSettlement, calcATC } from './engine.js';
+import { runMCPClearing, calcSettlement, calcATC, detectFlowDirection, detectPhysicalBlocking } from './engine.js';
 import { initCompactTopology, updateTopology, renderDispatchResult } from './topology.js';
+import { aiEngine, generateAIBidsWithAdaptive } from './ai-strategy.js';
 
 let currentScenario = 'flat';
 let currentHour = 12;
 let lastResult = null;
+let flowDirectionChanged = false;
 
 export function initSingle(containerId) {
   const el = document.getElementById(containerId);
@@ -160,6 +162,33 @@ function renderAIBiddersList() {
   `).join('');
 }
 
+function updateAILearningStatus() {
+  const container = document.getElementById('single-ai-list');
+  if (!container) return;
+
+  const status = aiEngine.getStatusSummary();
+  const baseBidders = renderAIBiddersList();
+
+  if (status.active) {
+    const learningCard = `
+      <div class="card" style="background:#fef3c7;border:1px solid #fbbf24;padding:8px;margin-bottom:8px;">
+        <div class="flex items-center gap-2 mb-1">
+          <span style="font-size:16px;">🧠</span>
+          <span class="text-xs font-semibold text-warning">AI学习状态激活</span>
+        </div>
+        <div class="text-xs text-body" style="line-height:1.7;">
+          ${status.message}<br/>
+          <strong>平均报价:</strong> ${status.details.avgBid} 元/MWh<br/>
+          <strong>平均利用率:</strong> ${status.details.avgUtilization}<br/>
+          <span class="text-warning font-semibold">⚠️ 华能广东交易部已切换为"贴身报价"模式</span>
+        </div>
+      </div>`;
+    container.innerHTML = learningCard + baseBidders;
+  } else {
+    container.innerHTML = baseBidders;
+  }
+}
+
 function bindEvents() {
   document.getElementById('single-hour')?.addEventListener('change', e => {
     currentHour = parseInt(e.target.value);
@@ -190,18 +219,69 @@ export function setSingleScenario(s) {
 
 function updateSceneInfo() {
   const s = SCENARIOS[currentScenario];
-  const atc = calcATC(currentScenario);
+  const atcInfo = calcATC(currentScenario, currentHour);
+  const flowInfo = detectFlowDirection(currentScenario, currentHour);
+
   const badge = document.getElementById('single-scenario-badge');
   if (badge) badge.textContent = s.name;
+
   const info = document.getElementById('single-scene-info');
   if (info) {
+    // 检测潮流方向是否改变
+    const prevDirection = lastResult?.flowDirection || 'forward';
+    if (flowInfo.direction !== prevDirection) {
+      flowDirectionChanged = true;
+      showFlowDirectionAlert(flowInfo);
+    }
+
     info.innerHTML = `
       <div class="kpi-card"><div class="kpi-label">福建现货价</div><div class="kpi-value">${s.fj_spot[currentHour]}<span class="kpi-unit">元/MWh</span></div></div>
       <div class="kpi-card"><div class="kpi-label">广东现货价</div><div class="kpi-value">${s.gd_spot[currentHour]}<span class="kpi-unit">元/MWh</span></div></div>
-      <div class="kpi-card"><div class="kpi-label">可用通道 ATC</div><div class="kpi-value">${atc}<span class="kpi-unit">MW</span></div></div>`;
+      <div class="kpi-card"><div class="kpi-label">可用通道 ATC</div><div class="kpi-value">${atcInfo.atc}<span class="kpi-unit">MW</span></div></div>
+      <div class="kpi-card"><div class="kpi-label">风电出力</div><div class="kpi-value">${atcInfo.windOutput}<span class="kpi-unit">MW</span></div></div>
+      <div class="kpi-card" style="grid-column: span 2;">
+        <div class="kpi-label">潮流方向</div>
+        <div class="kpi-value" style="font-size:14px;">
+          ${flowInfo.direction === 'reverse' ? '⬅️ 粤→闽' : '➡️ 闽→粤'}
+        </div>
+      </div>`;
   }
+
   const hourSel = document.getElementById('single-hour');
   if (hourSel) hourSel.value = currentHour;
+
+  // 检测物理阻塞
+  const constraints = detectPhysicalBlocking(currentScenario, currentHour, atcInfo.windOutput);
+  if (constraints.length > 0) {
+    showPhysicalBlockingWarning(constraints);
+  }
+}
+
+function showFlowDirectionAlert(flowInfo) {
+  if (flowInfo.trigger === 'price_inversion') {
+    showModal('潮流方向自动切换',
+      `<div class="text-sm" style="line-height:1.8;">
+        当前两省现货价差发生逆转：<br/>
+        <strong>广东现货价 ${flowInfo.gdPrice}元 &lt; 福建现货价 ${flowInfo.fjPrice}元</strong><br/><br/>
+        通道潮流已自动切换为 <strong class="text-warning">反向送电模式（粤→闽）</strong>。<br/>
+        受控容量已根据稳控装置约束动态调整。
+      </div>`,
+      'info');
+  }
+}
+
+function showPhysicalBlockingWarning(constraints) {
+  const details = constraints.map(c => `
+    <div class="card mb-2" style="background:${c.severity === 'high' ? '#fef2f2' : '#fffbeb'};border:1px solid ${c.severity === 'high' ? '#fecaca' : '#fed7aa'};">
+      <div class="text-xs font-semibold" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">${c.icon} ${c.reason}</div>
+      <div class="text-xs text-muted mt-1">${c.detail}</div>
+      <div class="text-xs mono mt-1" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">容量缩减: -${c.reduction}MW</div>
+    </div>
+  `).join('');
+
+  showModal('物理阻塞警告',
+    `<div class="text-sm mb-2">检测到以下物理约束导致通道容量缩减：</div>${details}`,
+    'warning');
 }
 
 function updateHint() {
@@ -245,14 +325,27 @@ function runClearing() {
     return;
   }
 
-  const atc = calcATC(currentScenario);
-  const aiBids = generateAIBids(currentScenario, currentHour);
-  const result = runMCPClearing(bid, qty, atc, aiBids);
+  const atcInfo = calcATC(currentScenario, currentHour);
+  const flowInfo = detectFlowDirection(currentScenario, currentHour);
+
+  // 使用自适应AI报价生成
+  const aiBids = generateAIBidsWithAdaptive(currentScenario, currentHour, generateAIBids);
+
+  const result = runMCPClearing(bid, qty, atcInfo.atc, aiBids);
   const settlement = calcSettlement(result, currentScenario, currentHour);
+
+  // 记录到AI学习引擎
+  aiEngine.recordBid(bid, result.isUserWon, result.userWinQty, atcInfo.atc, result.mcpPrice);
+
+  // 保存流向信息
+  result.flowDirection = flowInfo.direction;
+  result.windOutput = atcInfo.windOutput;
+  result.hour = currentHour;
+
   lastResult = { result, settlement };
 
   // 更新拓扑联动
-  updateTopology(currentScenario, result.isUserWon, { ...result, hour: currentHour });
+  updateTopology(currentScenario, result.isUserWon, result);
 
   // 更新拓扑badge
   const topoBadge = document.getElementById('single-topo-badge');
@@ -276,6 +369,9 @@ function runClearing() {
 
   // 渲染结算账单
   renderSettlement(result, settlement);
+
+  // 更新AI学习状态显示
+  updateAILearningStatus();
 
   // 更新提示
   updateHint();
@@ -358,6 +454,24 @@ function renderSettlement(result, settlement) {
   const gdSpot = s.gd_spot[currentHour];
 
   if (settlement.outcome === 'won') {
+    // 出清分析
+    const deltaPrice = result.fullQueue.find(b=>b.isUser).price - result.mcpPrice;
+    const clearingAnalysis = `
+      <div class="card mt-2">
+        <div class="text-xs font-semibold text-muted uppercase mb-2">📊 出清分析</div>
+        <div class="text-xs" style="line-height:1.8;">
+          您的报价: <span class="mono font-semibold">${result.fullQueue.find(b=>b.isUser).price}</span> 元/MWh<br/>
+          边际出清价: <span class="mono font-semibold text-warning">${result.mcpPrice}</span> 元/MWh<br/>
+          价差 (Delta): <span class="mono font-semibold ${deltaPrice >= 0 ? 'text-success' : 'text-error'}">
+            ${deltaPrice >= 0 ? '+' : ''}${deltaPrice.toFixed(1)}
+          </span> 元/MWh<br/>
+          ${deltaPrice > 0
+            ? `⚠️ 超额支付 ${deltaPrice.toFixed(1)} 元`
+            : `✅ 最优报价（恰好中标）`
+          }
+        </div>
+      </div>`;
+
     resultEl.innerHTML = `
       <div class="flex flex-col gap-2 animate-fade">
         <div class="kpi-card"><div class="kpi-label">到货电量</div><div class="kpi-value">${settlement.winQty}<span class="kpi-unit">MWh</span></div></div>
@@ -373,11 +487,13 @@ function renderSettlement(result, settlement) {
             <tr style="font-weight:600;"><td>广东现货结算</td><td class="text-right">${gdSpot} × ${settlement.winQty}</td><td class="text-right mono text-success">+${settlement.spotRevenue.toFixed(0)}元</td></tr>
           </table>
         </div>
+        ${clearingAnalysis}
         <div class="text-xs text-muted">
           省间价差利润空间: <span class="mono font-semibold text-ink">${settlement.spread.toFixed(1)}</span> 元/MWh
         </div>
       </div>`;
   } else {
+    // 未中标 - 添加机会成本分析
     resultEl.innerHTML = `
       <div class="flex flex-col gap-2 animate-fade">
         <div class="kpi-card" style="background:var(--error-light);border:1px solid #fecaca;">
@@ -385,13 +501,28 @@ function renderSettlement(result, settlement) {
           <div class="kpi-value negative">0<span class="kpi-unit">MWh 到货</span></div>
         </div>
         <div class="kpi-card"><div class="kpi-label">偏差扣罚</div><div class="kpi-value negative">-${settlement.penaltyCost.toFixed(0)}<span class="kpi-unit">元</span></div></div>
-        <div class="kpi-card"><div class="kpi-label">错失套利机会成本</div><div class="kpi-value negative">-${settlement.opportunityLoss.toFixed(0)}<span class="kpi-unit">元</span></div></div>
+        <div class="kpi-card" style="background:#fef2f2;border:1px solid #fecaca;">
+          <div class="kpi-label">机会成本损失</div>
+          <div class="kpi-value negative">-${settlement.opportunityCostLoss.toFixed(0)}<span class="kpi-unit">元</span></div>
+          <div class="text-xs text-muted mt-1">
+            💡 若报价 ${settlement.minWinningBid} 元，可获利 ${settlement.potentialProfit.toFixed(0)} 元
+          </div>
+        </div>
         <div class="card" style="margin-top:4px;">
           <div class="text-xs font-semibold text-muted uppercase mb-2">未中标原因分析</div>
           <div class="text-xs" style="line-height:1.8;">
             您的报价 <span class="mono font-semibold">${result.fullQueue.find(b=>b.isUser)?.price}</span> 元/MWh 低于边际出清价 <span class="mono font-semibold text-warning">${result.mcpPrice}</span> 元/MWh。<br/>
             通道被出价更高的竞争者占据，中长期购电合同物理履约中断。<br/>
             广东终端负荷需以本地现货价 <span class="mono font-semibold">${gdSpot}</span> 元/MWh 采购替代电量。
+          </div>
+        </div>
+        <div class="card" style="background:#fffbeb;border:1px solid #fed7aa;">
+          <div class="text-xs font-semibold text-warning uppercase mb-2">📊 出清透明化分析</div>
+          <div class="text-xs" style="line-height:1.8;">
+            价差 (Delta): <span class="mono font-semibold text-error">${(result.fullQueue.find(b=>b.isUser)?.price - result.mcpPrice).toFixed(1)}</span> 元/MWh<br/>
+            💡 若多报 <strong>${Math.abs(result.fullQueue.find(b=>b.isUser)?.price - result.mcpPrice).toFixed(1)}</strong> 元即可中标<br/>
+            预期利润: <strong>+${settlement.potentialProfit.toFixed(0)}</strong> 元<br/>
+            实际损失: <strong>-${settlement.opportunityCostLoss.toFixed(0)}</strong> 元
           </div>
         </div>
       </div>`;
