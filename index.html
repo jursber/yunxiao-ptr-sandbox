@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>云霄直流PTR实战沙盘</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- MathJax for LaTeX rendering -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="logo">PTR</div>
+      <div>
+        <div class="topbar-title">云霄直流输电权实战沙盘</div>
+        <div class="topbar-subtitle">Physical Transmission Right Trading Sandbox</div>
+      </div>
+    </div>
+    <div class="scenario-group">
+      <span class="text-xs text-muted" style="margin-right:4px;line-height:28px;">场景:</span>
+      <button class="scenario-btn" data-scenario="windy">寒潮大风</button>
+      <button class="scenario-btn" data-scenario="hot">夏季尖峰</button>
+      <button class="scenario-btn active" data-scenario="flat">平枯普通</button>
+    </div>
+  </header>
+
+  <!-- Workspace -->
+  <div class="workspace">
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:12px;">
+      <button class="tab-btn active" data-tab="topo">物理拓扑</button>
+      <button class="tab-btn" data-tab="single">单时段出清</button>
+      <button class="tab-btn" data-tab="multi">多时段推演</button>
+      <button class="tab-btn" data-tab="rules">规则知识库</button>
+    </div>
+
+    <!-- Tab: 物理拓扑 -->
+    <div id="tab-topo" class="tab-content active">
+      <div class="topo-layout">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              闽粤联网物理拓扑
+            </h2>
+          </div>
+          <div class="panel-body" id="topo-svg-container" style="padding:4px;">
+            <!-- SVG 拓扑图由 topology.js 渲染 -->
+          </div>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                通道参数
+              </h2>
+            </div>
+            <div class="panel-body" id="topo-status">
+              <div class="kpi-card mb-2">
+                <div class="kpi-label">额定物理容量</div>
+                <div class="kpi-value">2000<span class="kpi-unit">MW</span></div>
+              </div>
+              <div class="kpi-card mb-2">
+                <div class="kpi-label">战略协议预留</div>
+                <div class="kpi-value">800<span class="kpi-unit">MW</span></div>
+              </div>
+              <div class="kpi-card mb-2">
+                <div class="kpi-label">网架安全约束</div>
+                <div class="kpi-value" id="topo-grid-constraint">200<span class="kpi-unit">MW</span></div>
+              </div>
+              <div class="kpi-card mb-2">
+                <div class="kpi-label">安全裕度</div>
+                <div class="kpi-value">100<span class="kpi-unit">MW</span></div>
+              </div>
+              <div class="card" style="background:var(--success-light);border:1px solid var(--success-border);">
+                <div class="text-xs font-semibold text-success uppercase mb-1">市场化可用容量 ATC</div>
+                <div class="kpi-value text-success">900<span class="kpi-unit">MW</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel" style="flex:1;">
+            <div class="panel-header">
+              <h2>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <path d="M14 2v6h6"/>
+                </svg>
+                送端节点 · 福建电网
+              </h2>
+            </div>
+            <div class="panel-body" style="font-size:12px;line-height:1.8;">
+              <div class="card"><strong class="text-ink">福清核电厂</strong><br/><span class="text-muted">6×1000MW 压水堆 · 基荷核电 · 中长期合同价 390元/MWh</span></div>
+              <div class="card"><strong class="text-ink">宁德核电厂</strong><br/><span class="text-muted">4×1089MW · 远端支撑电源</span></div>
+              <div class="card"><strong class="text-ink">漳州核电厂</strong><br/><span class="text-muted">华龙一号 · 近区骨干清洁电源</span></div>
+              <div class="card"><strong class="text-ink">福建等效主网</strong><br/><span class="text-muted">省内其他电厂+负荷等效节点</span></div>
+            </div>
+          </div>
+          <div class="panel" style="flex:1;">
+            <div class="panel-header">
+              <h2>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <path d="M14 2v6h6"/>
+                </svg>
+                受端节点 · 广东电网
+              </h2>
+            </div>
+            <div class="panel-body" style="font-size:12px;line-height:1.8;">
+              <div class="card"><strong class="text-ink">华能海门电厂</strong><br/><span class="text-muted">4×1000MW 超超临界燃煤 · 粤东主力 · 边际定价者 450元/MWh</span></div>
+              <div class="card"><strong class="text-ink">惠州天然气电厂</strong><br/><span class="text-muted">燃气联合循环 · 尖峰调峰 · 650元/MWh</span></div>
+              <div class="card"><strong class="text-ink">珠三角中心负荷</strong><br/><span class="text-muted">广深莞惠等效负荷节点</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: 单时段出清 -->
+    <div id="tab-single" class="tab-content">
+      <!-- 由 single.js 渲染 -->
+    </div>
+
+    <!-- Tab: 多时段推演 -->
+    <div id="tab-multi" class="tab-content">
+      <!-- 由 multi.js 渲染 -->
+    </div>
+
+    <!-- Tab: 规则知识库 -->
+    <div id="tab-rules" class="tab-content">
+      <!-- 由 rules.js 渲染 -->
+    </div>
+  </div>
+
+  <!-- App Controller -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
