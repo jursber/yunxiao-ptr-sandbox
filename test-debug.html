@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Test</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: sans-serif; }
+    .test-container { border: 2px solid red; height: 500px; }
+    .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>布局调试测试</h1>
+  <div class="debug-info" id="info"></div>
+  <div class="test-container" id="test"></div>
+
+  <script type="module">
+    import { initTopology } from './js/topology.js';
+
+    const info = document.getElementById('info');
+    const test = document.getElementById('test');
+
+    info.innerHTML = `
+      容器宽度: ${test.clientWidth}px<br/>
+      容器高度: ${test.clientHeight}px<br/>
+      视口高度: ${window.innerHeight}px
+    `;
+
+    try {
+      initTopology('test');
+      info.innerHTML += '<br/><span style="color:green;">✓ initTopology 执行成功</span>';
+
+      setTimeout(() => {
+        info.innerHTML += `<br/>SVG已插入: ${test.querySelector('svg') ? '是' : '否'}`;
+        if (test.querySelector('svg')) {
+          const svg = test.querySelector('svg');
+          info.innerHTML += `<br/>SVG尺寸: ${svg.clientWidth}x${svg.clientHeight}`;
+        }
+      }, 100);
+    } catch(e) {
+      info.innerHTML += `<br/><span style="color:red;">✗ 错误: ${e.message}</span>`;
+      console.error(e);
+    }
+  </script>
+</body>
+</html>
