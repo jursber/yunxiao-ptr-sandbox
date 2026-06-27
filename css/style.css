@@ -405,6 +405,10 @@ label {
   stroke-dasharray: 8 4;
   animation: flow 3s linear infinite;
 }
+.topo-edge.dc-line.flowing.reverse-flow {
+  stroke-dasharray: 8 4;
+  animation: flow 3s linear infinite reverse;
+}
 .topo-edge.dc-line.blocked {
   stroke: var(--error);
   opacity: 0.8;
@@ -449,7 +453,7 @@ label {
 /* --- Animations --- */
 @keyframes flow {
   from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: 40; }
+  to { stroke-dashoffset: -40; }
 }
 @keyframes livePulse {
   0%, 100% { opacity: 1; }

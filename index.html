@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>云霄直流PTR实战沙盘</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2">
   <!-- MathJax for LaTeX rendering -->
   <script>
     window.MathJax = {
@@ -81,7 +81,7 @@
               </div>
               <div class="kpi-card mb-2">
                 <div class="kpi-label">战略协议预留</div>
-                <div class="kpi-value">800<span class="kpi-unit">MW</span></div>
+                <div class="kpi-value" id="topo-strategic">800<span class="kpi-unit">MW</span></div>
               </div>
               <div class="kpi-card mb-2">
                 <div class="kpi-label">网架安全约束</div>
@@ -99,7 +99,7 @@
           </div>
           <div class="panel" style="flex:1;">
             <div class="panel-header">
-              <h2>
+              <h2 id="topo-fj-title">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <path d="M14 2v6h6"/>
@@ -107,7 +107,7 @@
                 送端节点 · 福建电网
               </h2>
             </div>
-            <div class="panel-body" style="font-size:12px;line-height:1.8;">
+            <div class="panel-body" id="topo-fj-body" style="font-size:12px;line-height:1.8;">
               <div class="card"><strong class="text-ink">福清核电厂</strong><br/><span class="text-muted">6×1000MW 压水堆 · 基荷核电 · 中长期合同价 390元/MWh</span></div>
               <div class="card"><strong class="text-ink">宁德核电厂</strong><br/><span class="text-muted">4×1089MW · 远端支撑电源</span></div>
               <div class="card"><strong class="text-ink">漳州核电厂</strong><br/><span class="text-muted">华龙一号 · 近区骨干清洁电源</span></div>
@@ -116,7 +116,7 @@
           </div>
           <div class="panel" style="flex:1;">
             <div class="panel-header">
-              <h2>
+              <h2 id="topo-gd-title">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <path d="M14 2v6h6"/>
@@ -124,7 +124,7 @@
                 受端节点 · 广东电网
               </h2>
             </div>
-            <div class="panel-body" style="font-size:12px;line-height:1.8;">
+            <div class="panel-body" id="topo-gd-body" style="font-size:12px;line-height:1.8;">
               <div class="card"><strong class="text-ink">华能海门电厂</strong><br/><span class="text-muted">4×1000MW 超超临界燃煤 · 粤东主力 · 边际定价者 450元/MWh</span></div>
               <div class="card"><strong class="text-ink">惠州天然气电厂</strong><br/><span class="text-muted">燃气联合循环 · 尖峰调峰 · 650元/MWh</span></div>
               <div class="card"><strong class="text-ink">珠三角中心负荷</strong><br/><span class="text-muted">广深莞惠等效负荷节点</span></div>

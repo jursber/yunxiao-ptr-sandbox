@@ -57,9 +57,19 @@ function renderSVG(container, compact) {
             <text x="${n.x}" y="${n.y - r - 6}" text-anchor="middle" class="topo-tag-load-text" font-size="${tagFontSize}" font-weight="600">负荷节点</text>`;
         }
         if (isConverter) {
-          const color = isBlocked ? '#ef4444' : '#eab308';
+          const s = SCENARIOS[currentScenario];
+          const isReverse = s.flow_direction === 'reverse';
+          const color = isReverse ? '#8b5cf6' : (isBlocked ? '#ef4444' : '#eab308');
+          // 正向潮流(forward)：福建→广东，云霄=送端，鹅城=受端
+          // 反向潮流(reverse)：广东→福建，鹅城=送端，云霄=受端
+          let roleLabel;
+          if (isReverse) {
+            roleLabel = n.type.includes('fujian') ? '受端' : '送端';
+          } else {
+            roleLabel = n.type.includes('fujian') ? '送端' : '受端';
+          }
           tags = `<rect x="${n.x - 30}" y="${n.y + r + 4}" width="60" height="16" rx="5" fill="${color}22" stroke="${color}" stroke-width="1"/>
-            <text x="${n.x}" y="${n.y + r + 15}" text-anchor="middle" fill="${color}" font-size="${tagFontSize}" font-weight="600">${n.type.includes('fujian') ? '送端' : '受端'}</text>`;
+            <text x="${n.x}" y="${n.y + r + 15}" text-anchor="middle" fill="${color}" font-size="${tagFontSize}" font-weight="600">${roleLabel}</text>`;
         }
       }
 
@@ -94,17 +104,27 @@ function renderSVG(container, compact) {
   }
 
   function renderEdgesCompact() {
+    const s = SCENARIOS[currentScenario];
+    const isReverse = s.flow_direction === 'reverse';
+
     return EDGES.map(e => {
       const from = NODES.find(n => n.id === e.from);
       const to = NODES.find(n => n.id === e.to);
       if (!from || !to) return '';
       const isDC = e.isDC;
-      let cls = isDC ? 'topo-edge dc-line flowing' : 'topo-edge';
+      let cls = isDC ? (isReverse ? 'topo-edge dc-line flowing reverse-flow' : 'topo-edge dc-line flowing') : 'topo-edge';
 
-      // 所有线路都添加箭头
-      const marker = isDC
-        ? `marker-end="url(#arrow${isBlocked ? 'Red' : 'Blue'}${compact ? '-c' : ''})"`
-        : `marker-end="url(#arrowGray${compact ? '-c' : ''})"`;
+      // DC线路：反向潮流时箭头方向反转，使用橙色
+      let marker;
+      if (isDC) {
+        if (isReverse) {
+          marker = `marker-end="url(#arrowOrange${compact ? '-c' : ''})"`;
+        } else {
+          marker = `marker-end="url(#arrow${isBlocked ? 'Red' : 'Blue'}${compact ? '-c' : ''})"`;
+        }
+      } else {
+        marker = `marker-end="url(#arrowGray${compact ? '-c' : ''})"`;
+      }
 
       let labelHtml = '';
       if (e.label && !compact && !isDC) {
@@ -116,7 +136,24 @@ function renderSVG(container, compact) {
       if (isDC && lastClearingResult && lastClearingResult.isUserWon) {
         cls = 'topo-edge dc-line flowing';
       }
-      return `<line id="edge-${e.from}-${e.to}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" class="${cls}" ${marker}/>${labelHtml}`;
+
+      // EDGES定义：from=cv_yx(云霄,390), to=cv_ec(鹅城,530)
+      // 正向潮流(forward)：福建→广东，云霄是送端，箭头从左(390)向右(530)
+      // 反向潮流(reverse)：广东→福建，鹅城是送端，箭头从右(530)向左(390)
+      let x1 = from.x, y1 = from.y, x2 = to.x, y2 = to.y;
+      if (isDC) {
+        if (isReverse) {
+          // 反向：鹅城(530)→云霄(390)，从右向左
+          x1 = to.x; y1 = to.y;
+          x2 = from.x; y2 = from.y;
+        } else {
+          // 正向：云霄(390)→鹅城(530)，从左向右
+          x1 = from.x; y1 = from.y;
+          x2 = to.x; y2 = to.y;
+        }
+      }
+
+      return `<line id="edge-${e.from}-${e.to}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cls}" ${marker}/>${labelHtml}`;
     }).join('');
   }
 
@@ -138,6 +175,11 @@ function renderSVG(container, compact) {
       <marker id="arrowRed${compact ? '-c' : ''}" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
         <polygon points="0,0 10,4 0,8" fill="#ef4444" opacity="0.7">
           <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" repeatCount="indefinite"/>
+        </polygon>
+      </marker>
+      <marker id="arrowOrange${compact ? '-c' : ''}" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+        <polygon points="0,0 10,4 0,8" fill="#f97316" opacity="0.8">
+          <animate attributeName="opacity" values="1;0.4;1" dur="1.2s" repeatCount="indefinite"/>
         </polygon>
       </marker>
       <marker id="arrowGray${compact ? '-c' : ''}" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
@@ -176,7 +218,8 @@ export function updateTopology(scenario, isUserWon, clearingResult) {
   const hour = clearingResult?.hour || 12;
   const atcInfo = calcATC(scenario, hour);
   const atc = atcInfo.atc;
-  isBlocked = scenario === 'hot' || s.flow_direction === 'reverse';
+  const isReverse = s.flow_direction === 'reverse';
+  isBlocked = scenario === 'hot' || isReverse;
   if (clearingResult) lastClearingResult = clearingResult;
 
   // 更新DC通道状态（两种模式）
@@ -184,11 +227,42 @@ export function updateTopology(scenario, isUserWon, clearingResult) {
     document.querySelectorAll(`.${cls}`).forEach(dcLine => {
       dcLine.classList.toggle('blocked', isBlocked);
       dcLine.classList.toggle('flowing', !isBlocked);
-      const marker = isBlocked ? 'url(#arrowRed)' : 'url(#arrowBlue)';
+      dcLine.classList.toggle('reverse-flow', isReverse);
+
+      // 反向潮流：橙色箭头；正向潮流：红/蓝箭头
+      let marker;
+      if (isReverse) {
+        marker = 'url(#arrowOrange)';
+      } else {
+        marker = isBlocked ? 'url(#arrowRed)' : 'url(#arrowBlue)';
+      }
       dcLine.setAttribute('marker-end', marker);
       // compact模式用不同的marker id
       if (dcLine.closest('.topo-compact-svg')) {
-        dcLine.setAttribute('marker-end', isBlocked ? 'url(#arrowRed-c)' : 'url(#arrowBlue-c)');
+        if (isReverse) {
+          dcLine.setAttribute('marker-end', 'url(#arrowOrange-c)');
+        } else {
+          dcLine.setAttribute('marker-end', isBlocked ? 'url(#arrowRed-c)' : 'url(#arrowBlue-c)');
+        }
+      }
+
+      // 更新DC线路坐标方向
+      // 正向：云霄(390)→鹅城(530)，从左向右
+      // 反向：鹅城(530)→云霄(390)，从右向左
+      const cv_yx = NODES.find(n => n.id === 'cv_yx');
+      const cv_ec = NODES.find(n => n.id === 'cv_ec');
+      if (cv_yx && cv_ec) {
+        if (isReverse) {
+          dcLine.setAttribute('x1', cv_ec.x);
+          dcLine.setAttribute('y1', cv_ec.y);
+          dcLine.setAttribute('x2', cv_yx.x);
+          dcLine.setAttribute('y2', cv_yx.y);
+        } else {
+          dcLine.setAttribute('x1', cv_yx.x);
+          dcLine.setAttribute('y1', cv_yx.y);
+          dcLine.setAttribute('x2', cv_ec.x);
+          dcLine.setAttribute('y2', cv_ec.y);
+        }
       }
 
       // 拥挤感视觉反馈
@@ -239,12 +313,36 @@ export function updateTopology(scenario, isUserWon, clearingResult) {
     }
   });
 
+  // 更新换流站标签（送端/受端）
+  document.querySelectorAll('.topo-node').forEach(g => {
+    const id = g.dataset.id;
+    if (id !== 'cv_yx' && id !== 'cv_ec') return;
+    const textEl = g.querySelector('text:last-of-type');
+    if (!textEl) return;
+    const isFujianSide = id === 'cv_yx';
+    // 正向：云霄=送端，鹅城=受端
+    // 反向：云霄=受端，鹅城=送端
+    if (isReverse) {
+      textEl.textContent = isFujianSide ? '受端' : '送端';
+    } else {
+      textEl.textContent = isFujianSide ? '送端' : '受端';
+    }
+    // 颜色也更新
+    const rect = g.querySelector('rect');
+    const color = isReverse ? '#8b5cf6' : (isBlocked ? '#ef4444' : '#eab308');
+    if (rect) {
+      rect.setAttribute('fill', color + '22');
+      rect.setAttribute('stroke', color);
+    }
+    textEl.setAttribute('fill', color);
+  });
+
   // 更新右侧ATC状态面板（Tab拓扑页）
   const atcCard = document.querySelector('#topo-status .card');
   if (atcCard) {
-    const color = isBlocked ? 'var(--error-light)' : 'var(--success-light)';
-    const border = isBlocked ? '#fecaca' : 'var(--success-border)';
-    const textColor = isBlocked ? 'var(--error)' : 'var(--success)';
+    const color = isReverse ? '#f5f3ff' : (isBlocked ? 'var(--error-light)' : 'var(--success-light)');
+    const border = isReverse ? '#c4b5fd' : (isBlocked ? '#fecaca' : 'var(--success-border)');
+    const textColor = isReverse ? '#7c3aed' : (isBlocked ? 'var(--error)' : 'var(--success)');
     atcCard.style.background = color;
     atcCard.style.borderColor = border;
     const label = atcCard.querySelector('.text-xs');
@@ -258,7 +356,65 @@ export function updateTopology(scenario, isUserWon, clearingResult) {
   const gcEl = document.getElementById('topo-grid-constraint');
   if (gcEl) {
     gcEl.innerHTML = `${s.grid_constraint}<span class="kpi-unit">MW</span>`;
-    gcEl.style.color = isBlocked ? 'var(--error)' : 'var(--ink)';
+    gcEl.style.color = isReverse ? '#7c3aed' : (isBlocked ? 'var(--error)' : 'var(--ink)');
+  }
+
+  // 更新战略协议预留显示
+  const strategicEl = document.getElementById('topo-strategic');
+  if (strategicEl) {
+    const strategic = s.strategic_reservation !== undefined ? s.strategic_reservation : 800;
+    strategicEl.innerHTML = `${strategic}<span class="kpi-unit">MW</span>`;
+  }
+
+  // 更新送端/受端面板标题和内容（Tab拓扑页）
+  const fjTitle = document.getElementById('topo-fj-title');
+  const gdTitle = document.getElementById('topo-gd-title');
+  const fjBody = document.getElementById('topo-fj-body');
+  const gdBody = document.getElementById('topo-gd-body');
+
+  if (fjTitle) {
+    fjTitle.innerHTML = `
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <path d="M14 2v6h6"/>
+      </svg>
+      ${isReverse ? '受端节点 · 福建电网' : '送端节点 · 福建电网'}`;
+  }
+  if (gdTitle) {
+    gdTitle.innerHTML = `
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <path d="M14 2v6h6"/>
+      </svg>
+      ${isReverse ? '送端节点 · 广东电网' : '受端节点 · 广东电网'}`;
+  }
+  if (fjBody) {
+    if (isReverse) {
+      fjBody.innerHTML = `
+        <div class="card"><strong class="text-ink">福清核电厂</strong><br/><span class="text-muted">6×1000MW 压水堆 · 受端消纳电源 · 合同价 390元/MWh</span></div>
+        <div class="card"><strong class="text-ink">宁德核电厂</strong><br/><span class="text-muted">4×1089MW · 受端基荷电源</span></div>
+        <div class="card"><strong class="text-ink">漳州核电厂</strong><br/><span class="text-muted">华龙一号 · 受端骨干清洁电源</span></div>
+        <div class="card"><strong class="text-ink">福建等效主网</strong><br/><span class="text-muted">受端消纳网络 · 省内负荷等效节点</span></div>`;
+    } else {
+      fjBody.innerHTML = `
+        <div class="card"><strong class="text-ink">福清核电厂</strong><br/><span class="text-muted">6×1000MW 压水堆 · 基荷核电 · 中长期合同价 390元/MWh</span></div>
+        <div class="card"><strong class="text-ink">宁德核电厂</strong><br/><span class="text-muted">4×1089MW · 远端支撑电源</span></div>
+        <div class="card"><strong class="text-ink">漳州核电厂</strong><br/><span class="text-muted">华龙一号 · 近区骨干清洁电源</span></div>
+        <div class="card"><strong class="text-ink">福建等效主网</strong><br/><span class="text-muted">省内其他电厂+负荷等效节点</span></div>`;
+    }
+  }
+  if (gdBody) {
+    if (isReverse) {
+      gdBody.innerHTML = `
+        <div class="card"><strong class="text-ink">华能海门电厂</strong><br/><span class="text-muted">4×1000MW 超超临界燃煤 · 送端支撑电源 · 450元/MWh</span></div>
+        <div class="card"><strong class="text-ink">惠州天然气电厂</strong><br/><span class="text-muted">燃气联合循环 · 送端调峰电源 · 650元/MWh</span></div>
+        <div class="card"><strong class="text-ink">珠三角中心负荷</strong><br/><span class="text-muted">送端电源侧 · 广深莞惠等效出力节点</span></div>`;
+    } else {
+      gdBody.innerHTML = `
+        <div class="card"><strong class="text-ink">华能海门电厂</strong><br/><span class="text-muted">4×1000MW 超超临界燃煤 · 粤东主力 · 边际定价者 450元/MWh</span></div>
+        <div class="card"><strong class="text-ink">惠州天然气电厂</strong><br/><span class="text-muted">燃气联合循环 · 尖峰调峰 · 650元/MWh</span></div>
+        <div class="card"><strong class="text-ink">珠三角中心负荷</strong><br/><span class="text-muted">广深莞惠等效负荷节点</span></div>`;
+    }
   }
 }
 

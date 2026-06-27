@@ -120,12 +120,10 @@ export function calcWindPriceImpact(windOutput, ratedCapacity) {
 }
 
 // --- 风电导致的ATC调整 ---
+// 物理修正：风电出力不直接影响直流通道容量
+// 风电大发影响的是市场博弈环境（更多主体抢通道）和价格信号（福建现货被压低）
+// 通道容量由网架热稳极限和调度限流决定，不是风电出力的线性函数
 export function calcWindATCAdjustment(windOutput) {
-  // 风电大发时（>2000MW），导致送出通道拥挤
-  if (windOutput > 2000) {
-    // 每超出1MW，ATC减少0.3MW
-    return -(windOutput - 2000) * 0.3;
-  }
   return 0;
 }
 

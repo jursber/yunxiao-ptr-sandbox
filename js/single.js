@@ -266,17 +266,38 @@ function showFlowDirectionAlert(flowInfo) {
 }
 
 function showPhysicalBlockingWarning(constraints) {
-  const details = constraints.map(c => `
-    <div class="card mb-2" style="background:${c.severity === 'high' ? '#fef2f2' : '#fffbeb'};border:1px solid ${c.severity === 'high' ? '#fecaca' : '#fed7aa'};">
-      <div class="text-xs font-semibold" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">${c.icon} ${c.reason}</div>
-      <div class="text-xs text-muted mt-1">${c.detail}</div>
-      <div class="text-xs mono mt-1" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">容量缩减: -${c.reduction}MW</div>
-    </div>
-  `).join('');
+  // 分类约束：物理阻塞 vs 风险提示
+  const blockingConstraints = constraints.filter(c => c.type !== 'wind_risk');
+  const riskConstraints = constraints.filter(c => c.type === 'wind_risk');
 
-  showModal('物理阻塞警告',
-    `<div class="text-sm mb-2">检测到以下物理约束导致通道容量缩减：</div>${details}`,
-    'warning');
+  // 显示物理阻塞警告（如果有）
+  if (blockingConstraints.length > 0) {
+    const details = blockingConstraints.map(c => `
+      <div class="card mb-2" style="background:${c.severity === 'high' ? '#fef2f2' : '#fffbeb'};border:1px solid ${c.severity === 'high' ? '#fecaca' : '#fed7aa'};">
+        <div class="text-xs font-semibold" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">${c.icon} ${c.reason}</div>
+        <div class="text-xs text-muted mt-1">${c.detail}</div>
+        ${c.reduction > 0 ? `<div class="text-xs mono mt-1" style="color:${c.severity === 'high' ? 'var(--error)' : 'var(--warning)'};">容量缩减: -${c.reduction}MW</div>` : ''}
+      </div>
+    `).join('');
+
+    showModal('物理阻塞警告',
+      `<div class="text-sm mb-2">检测到以下物理约束导致通道容量缩减：</div>${details}`,
+      'warning');
+  }
+
+  // 显示风电风险提示（如果有）
+  if (riskConstraints.length > 0) {
+    const details = riskConstraints.map(c => `
+      <div class="card mb-2" style="background:#f0f9ff;border:1px solid #bae6fd;">
+        <div class="text-xs font-semibold text-primary">${c.icon} ${c.reason}</div>
+        <div class="text-xs text-muted mt-1">${c.detail}</div>
+      </div>
+    `).join('');
+
+    showModal('新能源出力提示',
+      `${details}`,
+      'info');
+  }
 }
 
 function updateHint() {
@@ -403,7 +424,7 @@ function renderQueueChart(result) {
     return `
       <rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="3" fill="${fill}" opacity="0.85"/>
       <text x="${padL - 6}" y="${y + barH/2 + 4}" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">${name}</text>
-      <text x="${padL + w + 6}" y="${y + barH/2 + 4}" font-size="10" font-weight="600" fill="${fill}" font-family="var(--mono)">${b.price}元</text>
+      <text x="${padL + w + 6}" y="${y + barH/2 + 4}" font-size="10" font-weight="600" fill="${fill}" font-family="var(--mono)">${b.price} 元/MWh</text>
     `;
   }).join('');
 

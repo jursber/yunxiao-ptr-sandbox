@@ -53,29 +53,29 @@ export function getWindOutput(scenario, hour = 12) {
   return calcWindOutput(windRatedCapacity, season, hour, scenario);
 }
 
-// --- ATC计算（集成风电和反向潮流） ---
+// --- ATC计算（物理修正版） ---
+// 物理模型：ATC = 额定容量 - 战略预留 - 网架约束 - 安全裕度
+// 风电大发不直接扣减通道容量，而是通过价格信号影响市场博弈
 export function calcATC(scenario, hour = 12, windOutput = null) {
   const s = SCENARIOS[scenario];
   const flowInfo = detectFlowDirection(scenario, hour);
 
-  // 如果未提供风电出力，自动计算
+  // 如果未提供风电出力，自动计算（用于返回值，不影响ATC）
   if (windOutput === null) {
     windOutput = getWindOutput(scenario, hour);
   }
 
-  // 基础ATC计算
-  let atc = P_RATED - P_STRATEGIC - s.grid_constraint - P_SECURITY;
+  // 战略协议预留：场景可覆盖（反向潮流时为0）
+  const strategic = s.strategic_reservation !== undefined ? s.strategic_reservation : P_STRATEGIC;
 
-  // 反向潮流时ATC受限
+  // 基础ATC计算（物理硬约束）
+  let atc = P_RATED - strategic - s.grid_constraint - P_SECURITY;
+
+  // 反向潮流时ATC受限（调度主动限流）
   if (flowInfo.direction === 'reverse') {
-    // ATC_Reverse = min(Rated_DC_Capacity, Grid_Stability_Constraint)
-    const stabilityLimit = P_RATED - P_STRATEGIC - s.grid_constraint - P_SECURITY;
+    const stabilityLimit = P_RATED - strategic - s.grid_constraint - P_SECURITY;
     atc = Math.min(atc, stabilityLimit);
   }
-
-  // 风电驱动的ATC调整
-  const windAdjustment = calcWindATCAdjustment(windOutput);
-  atc += windAdjustment;
 
   // 确保ATC非负
   atc = Math.max(0, atc);
@@ -83,14 +83,14 @@ export function calcATC(scenario, hour = 12, windOutput = null) {
   return {
     atc: Math.round(atc),
     windOutput,
-    windAdjustment: Math.round(windAdjustment),
+    windAdjustment: 0,  // 物理修正：风电不直接影响ATC
     flowDirection: flowInfo.direction,
-    baseATC: P_RATED - P_STRATEGIC - s.grid_constraint - P_SECURITY,
+    baseATC: P_RATED - strategic - s.grid_constraint - P_SECURITY,
     constraints: {
-      strategic: P_STRATEGIC,
+      strategic,
       grid: s.grid_constraint,
       security: P_SECURITY,
-      wind: -windAdjustment
+      wind: 0  // 物理修正：风电影响体现在价格信号，不在ATC
     }
   };
 }
@@ -214,37 +214,37 @@ export function calcSettlement(result, scenario, hour) {
 }
 
 // --- 物理阻塞检测 ---
+// 物理修正：风电大发不直接影响通道容量，而是影响价格信号和市场竞争
 export function detectPhysicalBlocking(scenario, hour, windOutput) {
   const s = SCENARIOS[scenario];
   const flowInfo = detectFlowDirection(scenario, hour);
   const constraints = [];
 
-  // 反向潮流稳控约束
+  // 反向潮流稳控约束（调度主动限流，物理真实）
   if (flowInfo.direction === 'reverse' && s.grid_constraint > 400) {
     constraints.push({
       type: 'stability',
       icon: '⚡',
-      reason: '反向潮流触发稳控装置约束',
-      detail: '交流联络线电压稳定性下降，稳控装置自动限流',
+      reason: '【反向潮流】稳控装置自动限流',
+      detail: `当前潮流方向：广东→福建。受端电网（福建）新能源消纳压力，交流联络线电压稳定性下降，调度自动限流。`,
       reduction: s.grid_constraint - 200,
       severity: 'high'
     });
   }
 
-  // 风电大发导致通道拥挤
-  if (windOutput > 2500) {
-    const reduction = (windOutput - 2000) * 0.3;
+  // 风电大发风险提示（不扣减ATC，提示价格风险）
+  if (windOutput > 2000) {
     constraints.push({
-      type: 'congestion',
+      type: 'wind_risk',
       icon: '🌬️',
-      reason: '风电大发导致送出通道拥挤',
-      detail: `当前风电出力${windOutput}MW，超过通道消纳能力`,
-      reduction: Math.round(reduction),
-      severity: windOutput > 2800 ? 'high' : 'medium'
+      reason: '风电大发，送端现货价格将被压低',
+      detail: `当前福建沿海风电出力${windOutput}MW，送端日前现货价格将被显著压低。风电大发时段跨省价差（Spread）可能扩大，PTR竞价竞争激烈，建议关注边际出清价格（MCP）走势。`,
+      reduction: 0,  // 物理修正：风电不扣减ATC
+      severity: 'info'
     });
   }
 
-  // 网架约束异常高
+  // 网架约束异常高（调度主动限流，物理真实）
   if (s.grid_constraint > 500) {
     constraints.push({
       type: 'grid',
